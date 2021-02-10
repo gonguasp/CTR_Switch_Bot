@@ -11,5 +11,12 @@
   "dependencies": {
     "discord.js": "^12.5.1",
     "module-alias": "^2.2.2"
+  },
+  "_moduleAliases": {
+    "@root": ".",
+    "@cmdGeneral": "./commands",
+    "@cmdLobbyCreation": "./commands/lobbyCreation",
+    "@config": "./config.json",
+    "@utils": "./utils"
   }
 }

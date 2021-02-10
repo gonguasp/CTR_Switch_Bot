@@ -1,8 +1,12 @@
-const config = require('../config/config.json');
+require("module-alias/register");
+
+const config = require('@config');
 
 module.exports = {
-    name: "genTracks",
+    name: "gentracks",
     description: "generates random tracks",
+	guildOnly: true,
+	public: false,
     execute(){
 		var numRaces = 8;
 		var includeBannedTracks = false;

@@ -1,8 +1,12 @@
-const genTracks = require("../commands/genTracks.js");
+require("module-alias/register");
+
+const genTracks = require("@cmdLobbyCreation/genTracks.js");
 
 module.exports = {
-    name: "createLobby",
+    name: "createlobby",
     description: "creates the lobby in the right channel",
+    guildOnly: true,
+    public: false,
     async execute(message, lobby, Discord, client, args){
 
         const confirmReaction = "✅";

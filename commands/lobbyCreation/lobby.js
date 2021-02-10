@@ -1,11 +1,17 @@
-const config = require('../config/config.json');
-const createLobby = require("../commands/createLobby.js");
-const setLobbyTimeZone = require("./setLobbyTimeZone.js");
+require("module-alias/register");
+
+const config = require('@config');
+const createLobby = require("@cmdLobbyCreation/createLobby.js");
+const setLobbyTimeZone = require("@cmdLobbyCreation/setLobbyTimeZone.js");
 
 module.exports = {
     name: "lobby",
     description: "lobby creation",
     aliases: ["l"],
+    args: false,
+    usage: ["", "custom"],
+    guildOnly: true,
+    public: true,
     execute(message, args, Discord, client){
         let filter = m => m.author.id === message.author.id;
         let lobbies = "";

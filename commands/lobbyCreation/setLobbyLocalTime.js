@@ -1,9 +1,13 @@
-const createLobby = require("../commands/createLobby.js");
-const localTimeFunctions = require('./lobbyCreation/localTimeFunctions.js');
+require("module-alias/register");
+
+const createLobby = require("@cmdLobbyCreation/createLobby.js");
+const localTimeFunctions = require('@cmdLobbyCreation/localTimeFunctions.js');
 
 module.exports = {
-    name: "setLobbyLocalTime",
+    name: "setlobbylocaltime",
     description: "sets the local time for a lobby",
+    guildOnly: true,
+    public: false,
     async execute(message, timeZone, Discord, lobby){
 
         let filter = m => m.author.id === message.author.id;

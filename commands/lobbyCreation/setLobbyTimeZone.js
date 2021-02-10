@@ -1,10 +1,14 @@
-const setLobbyLocalTime = require("./setLobbyLocalTime.js");
-const config = require('../config/config.json');
-const timeZoneFunctions = require('../commands/lobbyCreation/timeZoneFunctions.js');
+require("module-alias/register");
+
+const config = require('@config');
+const setLobbyLocalTime = require("@cmdLobbyCreation/setLobbyLocalTime.js");
+const timeZoneFunctions = require('@cmdLobbyCreation/timeZoneFunctions.js');
 
 module.exports = {
-    name: "setLobbyTimeZone",
+    name: "setlobbytimezone",
     description: "sets the time zone for a lobby",
+    guildOnly: true,
+    public: false,
     async execute(message, Discord, lobby){
 
         const channel = message.channel;

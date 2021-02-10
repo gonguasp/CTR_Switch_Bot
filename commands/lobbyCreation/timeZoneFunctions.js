@@ -1,4 +1,6 @@
-const config = require('../../config/config.json');
+require("module-alias/register");
+
+const config = require('@config');
 
 exports.isCorrectEmoji = function(emoji) {
     

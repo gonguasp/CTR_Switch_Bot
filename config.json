@@ -1,7 +1,7 @@
 {
 	"prefix": "!",
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
-	"commandsDir": "./commands/",
+	"commandsDirs": ["./commands/", "./commands/lobbyCreation/"],
 	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
 	"timeZones":{
 		"Mexico": "Mexico",
@@ -13,6 +13,13 @@
 		"NewYork": {"emoji": "2️⃣", "UTCZone": "UTC-5"},
 		"Madrid":{"emoji": "3️⃣", "UTCZone": "UTC+1"}
 	},
+	"moduleAliases": {
+		"@root": ".",
+		"@cmdGeneral": "./commands",
+		"@cmdLobbyCreation": "./commands/lobbyCreation",
+		"@config": "./config.json",
+		"@utils": "./utils"
+	  },
 
 
 
