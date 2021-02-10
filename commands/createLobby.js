@@ -7,7 +7,7 @@ module.exports = {
 
         const confirmReaction = "✅";
         const channel = message.channel;//client.channels.cache.get("735444004371693568");
-        const time = "5 pm Mexico\n6 pm New York\\Peru\n12 am Madrid\n";
+        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
         const footer = "React with " + confirmReaction +  " if you're interested";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
@@ -24,11 +24,9 @@ module.exports = {
         let users = [];
 
         client.on("messageReactionAdd", async (reaction, user) => {
-            if(messageEmbed.id != reaction.message.id) return;
+            if(messageEmbed.id != reaction.message.id || user.bot || !reaction.message.guild) return;
             if(reaction.message.partial) await reaction.message.fetch();
             if(reaction.partial) await reaction.fetch();
-            if(user.bot) return;
-            if(!reaction.message.guild) return;
             
             let usersString = "";
             users.push(user);
@@ -49,17 +47,15 @@ module.exports = {
                 newEmbed.addField("Tracks", genTracks.execute(), true);
                 messageEmbed.edit(newEmbed);
             }
-            else {
-                channel.send("<@" + user + "> the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
+            else if(users.length > 8) {
+                reaction.message.reply("the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
 
         client.on("messageReactionRemove", async (reaction, user) => {
-            if(messageEmbed.id != reaction.message.id) return;
+            if(messageEmbed.id != reaction.message.id || user.bot || !reaction.message.guild) return;
             if(reaction.message.partial) await reaction.message.fetch();
             if(reaction.partial) await reaction.fetch();
-            if(user.bot) return;
-            if(!reaction.message.guild) return;
             
             if(reaction.message.channel == channel && !lobbyCompleted) {
                 let usersString = "";

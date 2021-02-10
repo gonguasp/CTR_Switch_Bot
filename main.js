@@ -11,6 +11,11 @@ const commandFiles = fs.readdirSync(config.commandsDir).filter(file => file.ends
 for(const file of commandFiles){
     const command = require(config.commandsDir + file);
     client.commands.set(command.name, command);
+    if(command.aliases != undefined) {
+        command.aliases.forEach(alias => {
+            client.commands.set(alias, command);
+        });
+    }
 }
 
 client.on("message", message => {

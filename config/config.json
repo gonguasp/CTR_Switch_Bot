@@ -1,8 +1,23 @@
 {
-	"prefix": "-",
+	"prefix": "!",
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
 	"commandsDir": "./commands/",
 	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
+	"timeZones":{
+		"Mexico": "Mexico",
+		"NewYork": "NewYork",
+		"Madrid": "Madrid"
+	},
+	"timeZonesData":{
+		"Mexico": {"emoji": "1️⃣", "UTCZone": "UTC-6"},
+		"NewYork": {"emoji": "2️⃣", "UTCZone": "UTC-5"},
+		"Madrid":{"emoji": "3️⃣", "UTCZone": "UTC+1"}
+	},
+
+
+
+
+
 	"tracks": [{"race":"Cala Crash | Crash Cove", "banned":false, "used":false, "blue":false},
 		{"race":"Cuevas Misteriosas | Mystery Caves", "banned":false, "used":false, "blue":false},
 		{"race":"Pista Cloaca | Sewer Speedway", "banned":false, "used":false, "blue":false},
