@@ -41,7 +41,13 @@ exports.isCorrectTime = function(time) {
     time.setMinutes(minutes);
 
     for(const timeZoneObject of config.timeZones) {
-        formatedTime += time.toLocaleTimeString("en-US", {timeZone: timeZoneObject.timeZone}) + " " + timeZoneObject.name + "\n";
+        let timeLocaled = time.toLocaleTimeString("en-US", {timeZone: timeZoneObject.timeZone});
+        if(minutes == 0) 
+            timeLocaled = timeLocaled.split(":")[0] + " " + timeLocaled.split(" ")[1].toLowerCase();
+        else
+            timeLocaled = timeLocaled.split(":")[0] + ":" + timeLocaled.split(":")[1] + " " + timeLocaled.split(" ")[1].toLowerCase();
+
+        formatedTime += timeLocaled + " " + timeZoneObject.name + "\n";
     }
     
     return formatedTime;
