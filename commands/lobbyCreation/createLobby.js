@@ -1,4 +1,5 @@
 require("module-alias/register");
+const config = require('@config');
 
 const genTracks = require("@cmdLobbyCreation/genTracks.js");
 
@@ -10,12 +11,19 @@ module.exports = {
     async execute(message, lobby, Discord, client, args){
 
         const confirmReaction = "✅";
-        const channel = message.channel;//client.channels.cache.get("735444004371693568");
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
         const footer = "React with " + confirmReaction +  " if you're interested";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
-        var lobbyCompleted = false;
+        let lobbyCompleted = false;
+
+        let channel = message.channel;
+        for(const ch of message.guild.channels.cache.values()) {
+            if(ch.name == config.rankedLobbiesChannel) {
+                channel = ch;
+                break;
+            }
+        }
 
         const embed = new Discord.MessageEmbed()
             .setColor(color)
@@ -43,16 +51,17 @@ module.exports = {
                 .addField("Time", time, true)
                 .setFooter(footer);
 
-            if(reaction.message.channel == channel && users.length < 8) {
+            if(reaction.message.channel == channel && users.length < 9) {
                 messageEmbed.edit(newEmbed);
             }
-            else if(reaction.message.channel == channel && users.length == 8) {
+            else if(reaction.message.channel == channel && users.length == 9) {
                 lobbyCompleted = true;
                 newEmbed.addField("Tracks", genTracks.execute(), true);
                 messageEmbed.edit(newEmbed);
             }
-            else if(users.length > 8) {
-                reaction.message.reply("the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
+            else if(users.length > 9) {
+                await reaction.users.remove(user.id);
+                channel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
 
@@ -61,7 +70,8 @@ module.exports = {
             if(reaction.message.partial) await reaction.message.fetch();
             if(reaction.partial) await reaction.fetch();
             
-            if(reaction.message.channel == channel && !lobbyCompleted) {
+            if(reaction.message.channel == channel) {
+                lobbyCompleted = false;
                 let usersString = "";
                 users = users.filter(item => item !== user);
                 users.forEach(element => usersString += "<@" + element + ">\n");

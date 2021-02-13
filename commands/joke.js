@@ -4,6 +4,6 @@ module.exports = {
     guildOnly: true,
     public: true,
     execute(message, args, Discord, client){
-        message.channel.send("Hear about the new restaurant called Karma?\nThere's no menu: You get what you deserve."); 
+        message.channel.send("one min, I am testing");//"Hear about the new restaurant called Karma?\nThere's no menu: You get what you deserve."); 
     }
 }

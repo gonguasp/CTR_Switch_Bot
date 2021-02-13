@@ -1,6 +1,7 @@
 require("module-alias/register");
 
 const config = require('@config');
+const utils = require('@utils/utils.js');
 const createLobby = require("@cmdLobbyCreation/createLobby.js");
 const setLobbyTimeZone = require("@cmdLobbyCreation/setLobbyTimeZone.js");
 
@@ -12,7 +13,16 @@ module.exports = {
     usage: ["", "custom"],
     guildOnly: true,
     public: true,
-    execute(message, args, Discord, client){
+    execute(message, args, Discord, client) {
+
+        const roles = [];
+        roles.push(config.rankedRole);
+
+        if(!utils.userHasRoles(message, roles)) {
+            message.reply("you don't have the role/s " + roles + " to execute that command");
+            return;
+        }
+        
         let filter = m => m.author.id === message.author.id;
         let lobbies = "";
 

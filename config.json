@@ -9,9 +9,9 @@
 		"Madrid": "Madrid"
 	},
 	"timeZonesData":{
-		"Mexico": {"emoji": "1️⃣", "UTCZone": "UTC-6"},
-		"NewYork": {"emoji": "2️⃣", "UTCZone": "UTC-5"},
-		"Madrid":{"emoji": "3️⃣", "UTCZone": "UTC+1"}
+		"Mexico": {"emoji": "1️⃣", "UTCZone": "UTC-6" , "timeZone": "America/Mexico_City"},
+		"NewYork": {"emoji": "2️⃣", "UTCZone": "UTC-5", "timeZone": "America/New_York"},
+		"Madrid":{"emoji": "3️⃣", "UTCZone": "UTC+1", "timeZone": "Europe/Madrid"}
 	},
 	"moduleAliases": {
 		"@root": ".",
@@ -20,10 +20,70 @@
 		"@config": "./config.json",
 		"@utils": "./utils"
 	  },
+	"hourFormat": {
+		"horaMinutoUS": "hh:mm am/pm",
+		"horaUS": "hh am/pm",
+		"horaEU": "HH"
+	},
+	"rankedLobbiesChannel": "ranked-lobbies",
+	"rankedRole": "Ranked",
+	"privilegiesRole": ["Admin", "Coordinator"],
 
 
-
-
+	"chistes": [
+		{"text": "Donde pongo el ojo, pongo la vara", "used": false},
+		{"text": "No importa lo grueso, sino lo travieso", "used": false},
+		{"text": "Te cabe toda la razón. Tienes toda la razón adentro", "used": false},
+		{"text": "En mejores tepalcates he frito mi longaniza", "used": false},
+		{"text": "No soy de Alvarado sino de Jalapa, o sea jalaspito", "used": false},
+		{"text": "Aquí huele a azucena", "used": false},
+		{"text": "Si sientes feo cuando me voy ¿Qué sientes cuando me vengo?", "used": false},
+		{"text": "No me agarren el chiquito por que empieza a chillar", "used": false},
+		{"text": "No es lo mismo los huevos de la araña negra que aráñame los huevos negra", "used": false},
+		{"text": "Ya se descongeló el bisteck", "used": false},
+		{"text": "¿En las taquerías, comes parado?", "used": false},
+		{"text": "El chico temido del vecindario ", "used": false},
+		{"text": "Tela Comex", "used": false},
+		{"text": "No se hablan pero sí juegan", "used": false},
+		{"text": "Pobre pero pa los frijoles sí saco", "used": false},
+		{"text": "Yo no soy su pariente, pero vengo atrás de usted", "used": false},
+		{"text": "A la larga te acostumbras", "used": false},
+		{"text": "¿Cual es el pájaro que lleva tenis? \n R:EL pájaro con suelas.", "used": false},
+		{"text": "¿Cuál es el pájaro mas caballeroso? \n R: El que se para pa que te sientes.", "used": false},
+		{"text": "Busco a Jhonny Melabo. ¿Eres tu?", "used": false},
+		{"text": "Soy un bot pero si fuese persona mi nombre seria Venito Camela", "used": false},
+		{"text": "Dora Melcacho", "used": false},
+		{"text": "Soy Batman", "used": false},
+		{"text": "No es lo mismo dormirse al instante, que dormirse en el acto.", "used": false},
+		{"text": "No es lo mismo palos en el monte, que montes en el palo", "used": false},
+		{"text": "No es lo mismo lino pásame el remo, que pásame el remo lino", "used": false},
+		{"text": "No es lo mismo apalear un techo, que techar un palo", "used": false},
+		{"text": "No es lo mismo Huele a trastes que atrás te huele.", "used": false},
+		{"text": "No es lo mismo la papaya tapatía, que tápate la papaya Tia", "used": false},
+		{"text": "No es lo mismo calzones a bajo precio que aprecio tus calzones abajo", "used": false},
+		{"text": "No es lo mismo el Consulado General de Chile, que el General con su chile de lado", "used": false},
+		{"text": "No es lo papas en chile, que chile en papas", "used": false},
+		{"text": "No es lo mismo La verdura, que verla dura", "used": false},
+		{"text": "No es lo mismo Tener un hambre atroz, que tener un hombre atrás", "used": false},
+		{"text": "No es lo mismo la cómoda de tu hermana, que acomodarme a tu hermana.", "used": false},
+		{"text": "No es lo mismo chiles en el monte que móntese en el chile", "used": false},
+		{"text": "No es lo mismo el Consulado General de Chile, que el General con su chile de lado", "used": false},
+		{"text": "No es lo mismo, los montes de Tapachula, que tápate los montes chula", "used": false},
+		{"text": "No es lo mismo los huevos de la araña negra, que aráñame los huevos negra", "used": false},
+		{"text": "No es lo mismo Anita siéntate en la amaca, que siéntate en la amaca Anita", "used": false},
+		{"text": "No es lo mismo enchílame esta gorda, que engórdame este chile", "used": false},
+		{"text": "¡Con esos pelotones se pone firmes mi general!", "used": false},
+		{"text": "¡Quisiera ser mecánico para meterle mano a esa máquina!", "used": false},
+		{"text": "Quisiera ser ardilla para comerte, bellota", "used": false},
+		{"text": "Mamacita vamos a estacionar el trailer", "used": false},
+		{"text": "Tú con tan buena herramienta y yo haciendo chambas a mano", "used": false},
+		{"text": "Quién fuera noche para caerte encima", "used": false},
+		{"text": "Oye, sabes la cancion de la nalga?\nNo, no me suena.\nTe la toco?", "used": false},
+		{"text": "Como maldice un pollo a otro pollo\nCaldito seas!", "used": false}
+	],
+	"jokes": [
+		{"text": "“Siri, why am I still single?!” - Siri activates front camera.", "used": false}
+	],
 
 	"tracks": [{"race":"Cala Crash | Crash Cove", "banned":false, "used":false, "blue":false},
 		{"race":"Cuevas Misteriosas | Mystery Caves", "banned":false, "used":false, "blue":false},

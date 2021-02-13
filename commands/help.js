@@ -1,9 +1,10 @@
 const { prefix } = require('@config');
+const Discord = require("discord.js");
 
 module.exports = {
 	name: 'help',
 	description: 'List all of my commands or info about a specific command.',
-	aliases: ['commands'],
+	aliases: ['commands', "h"],
 	usage: "[command name]",
     guildOnly: true,
     public: true,
@@ -13,11 +14,15 @@ module.exports = {
         const { commands } = message.client;
 
         if (!args.length) {
-            data.push('Here\'s a list of all my commands:');
-            data.push(commands.map(command => command.name).join(', '));
-            data.push(`\nYou can send \`${prefix}help [command name]\` to get info on a specific command!`);
 
-            return message.author.send(data, { split: true })
+            const newEmbed = new Discord.MessageEmbed()
+                .setColor("#FFFFFF")
+                .setTitle(":information_source: Here\'s a list of all my commands:")
+                .addField("\nPublic commands.", "\`\`\` " + commands.map(command => command.public ? command.name + "\n " : "").join("") + "\`\`\`", true)
+                .addField("\nPrivate commands.", "\`\`\` " + commands.map(command => !command.public ? command.name + "\n " : "").join("") + "\`\`\`", true)
+                .addField("Info", `\nYou can send \`${prefix}help [command name]\` to get info on a specific command!`, true);
+
+            return message.author.send(newEmbed)
                 .then(() => {
                     if (message.channel.type === 'dm') return;
                     message.reply('I\'ve sent you a DM with all my commands!');

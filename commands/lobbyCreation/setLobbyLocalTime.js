@@ -29,10 +29,10 @@ module.exports = {
                 .then(message => {
                     message = message.first();
                     
-                    let correctTime = localTimeFunctions.isCorrectTime(message.content);
+                    let correctTime_format = localTimeFunctions.isCorrectTime(message.content);
 
-                    if(correctTime) {    
-                        let time = localTimeFunctions.getFormatedTimeZones(message.content, timeZone);
+                    if(correctTime_format.correctTime) {    
+                        let time = localTimeFunctions.getFormatedTimeZones(message.content, timeZone, correctTime_format.format);
                         console.log(time);
                         try {
                             createLobby.execute(message, lobby, Discord, message.client, time);

@@ -35,3 +35,29 @@ exports.executeCommand = function(message, args, Discord, client, command) {
 
     command.execute(message, args, Discord, client);
 }
+
+exports.areAllUsed = function(array) {
+    
+    let used = 0;
+
+	for(var i = 0; i < array.length; i++)
+		if(array[i].used)
+			used++;
+
+	return used == (array.length - 1);
+}
+
+exports.restartUsability = function(array) {
+	for(var i = 0; i < array.length; i++)
+        array[i].used = false;
+}
+
+exports.userHasRoles = function(message, roles) {
+	const { guild } = message;
+    const role = guild.roles.cache.find((role) => {return roles.includes(role.name)});
+    if(role == undefined)
+        return false;
+    const member = guild.members.cache.get(message.author.id);
+
+    return member.roles.cache.get(role.id) ? true : false;
+}

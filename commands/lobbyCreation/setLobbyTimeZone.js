@@ -27,8 +27,8 @@ module.exports = {
 
         let messageEmbed = await channel.send(embed);
                     
-        Object.values(config.timeZones).forEach(timeZone => {
-            messageEmbed.react(config.timeZonesData[timeZone].emoji);
+        Object.values(config.timeZones).forEach(async (timeZone) => {
+            await messageEmbed.react(config.timeZonesData[timeZone].emoji);
         });
 
         messageEmbed.awaitReactions((reaction, user) => user.id == message.author.id, { 
