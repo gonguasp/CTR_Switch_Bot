@@ -16,51 +16,33 @@ exports.isCorrectTime = function(time) {
     if(time.includes == "0:")
         correctTime = false;
 
-    console.log({correctTime, format});
     return {correctTime, format};
   }
 
   exports.getFormatedTimeZones = function(time, emojiTimeZone, format) {
     
-    /*const timeZoneMexico = "1️⃣";
-    const timeZoneNewYork = "2️⃣";
-    const timeZoneMadrid = "3️⃣";*/
-    let timeMexico = "";
-    let timeNewYork = "";
-    let timeMadrid = "";
-    
-    //let hours = parseInt(time.substring(0, 2));
-    /*let hours = time.split(":")[0];
+    let hours = time.split(":")[0];
     hours = hours.split(" ")[0];
-    let minutes = time.split(":")[1];
-    minutes = minutes.split(" ")[0];*/
-
-
-    /*for(const timeZone of config.timeZonesData) {
-        if(emojiTimeZone == timeZone) {
-
+    let minutes = 0;
+    
+    if(format == config.hourFormat.horaMinutoUS || format == config.hourFormat.horaUS) {
+        hours = parseInt(hours) + (time.indexOf("pm") != -1 ? parseInt(12) : parseInt(0));
+        
+        if(format == config.hourFormat.horaMinutoUS) {
+            minutes = time.split(":")[1];
+            minutes = minutes.split(" ")[0];
         }
-    }*/
+    }
 
-    /*switch(timeZone) {
-        case timeZoneMexico:
-            timeMexico = time;
-            timeNewYork = ((hours + 1) % 12) + time.substring(2, time.length);
-            timeMadrid = ((hours + 7) % 12) + time.substring(2, time.length);
-            break;
-        case timeZoneNewYork:
-            timeMexico = ((hours - 1) % 12) + time.substring(2, time.length);
-            timeNewYork = time;
-            timeMadrid = ((hours + 7) % 12) + time.substring(2, time.length);
-            break;
-        case timeZoneMadrid:
-            timeMexico = ((hours - 7) % 12) + time.substring(2, time.length);
-            timeNewYork = ((hours - 6) % 12) + time.substring(2, time.length);
-            timeMadrid = time;
-            break;
-    }*/
+    time = new Date();
+    let formatedTime = "";
+    let chosenTimeZone = config.timeZones.find(timeZone => timeZone.emoji == emojiTimeZone);
+    time.setHours(hours - chosenTimeZone.UTCZone.replace("UTC", "") + parseInt(config.localTimeZone.UTCDifference));
+    time.setMinutes(minutes);
 
-    let formatedTime = "not implemented yet";//timeMexico + " Mexico\n" + timeNewYork + " New York\n" + timeMadrid + " Madrid\n";
-    console.log(formatedTime);
+    for(const timeZoneObject of config.timeZones) {
+        formatedTime += time.toLocaleTimeString("en-US", {timeZone: timeZoneObject.timeZone}) + " " + timeZoneObject.name + "\n";
+    }
+    
     return formatedTime;
   }

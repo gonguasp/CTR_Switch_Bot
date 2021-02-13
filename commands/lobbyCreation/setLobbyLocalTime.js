@@ -32,9 +32,9 @@ module.exports = {
                     let correctTime_format = localTimeFunctions.isCorrectTime(message.content);
 
                     if(correctTime_format.correctTime) {    
-                        let time = localTimeFunctions.getFormatedTimeZones(message.content, timeZone, correctTime_format.format);
-                        console.log(time);
+                        let time ;
                         try {
+                            time = localTimeFunctions.getFormatedTimeZones(message.content, timeZone, correctTime_format.format);
                             createLobby.execute(message, lobby, Discord, message.client, time);
                         } catch (error) {
                             console.error(error);

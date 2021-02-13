@@ -3,16 +3,12 @@
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
 	"commandsDirs": ["./commands/", "./commands/lobbyCreation/"],
 	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
-	"timeZones":{
-		"Mexico": "Mexico",
-		"NewYork": "NewYork",
-		"Madrid": "Madrid"
-	},
-	"timeZonesData":{
-		"Mexico": {"emoji": "1️⃣", "UTCZone": "UTC-6" , "timeZone": "America/Mexico_City"},
-		"NewYork": {"emoji": "2️⃣", "UTCZone": "UTC-5", "timeZone": "America/New_York"},
-		"Madrid":{"emoji": "3️⃣", "UTCZone": "UTC+1", "timeZone": "Europe/Madrid"}
-	},
+	"localTimeZone": {"UTCDifference": "+1"},
+	"timeZones":[
+		{"name": "Mexico", "emoji": "1️⃣", "UTCZone": "UTC-6" , "timeZone": "America/Mexico_City"},
+		{"name": "New York", "emoji": "2️⃣", "UTCZone": "UTC-5", "timeZone": "America/New_York"},
+		{"name": "Madrid", "emoji": "3️⃣", "UTCZone": "UTC+1", "timeZone": "Europe/Madrid"}
+	],
 	"moduleAliases": {
 		"@root": ".",
 		"@cmdGeneral": "./commands",
@@ -67,7 +63,6 @@
 		{"text": "No es lo mismo Tener un hambre atroz, que tener un hombre atrás", "used": false},
 		{"text": "No es lo mismo la cómoda de tu hermana, que acomodarme a tu hermana.", "used": false},
 		{"text": "No es lo mismo chiles en el monte que móntese en el chile", "used": false},
-		{"text": "No es lo mismo el Consulado General de Chile, que el General con su chile de lado", "used": false},
 		{"text": "No es lo mismo, los montes de Tapachula, que tápate los montes chula", "used": false},
 		{"text": "No es lo mismo los huevos de la araña negra, que aráñame los huevos negra", "used": false},
 		{"text": "No es lo mismo Anita siéntate en la amaca, que siéntate en la amaca Anita", "used": false},
@@ -79,10 +74,23 @@
 		{"text": "Tú con tan buena herramienta y yo haciendo chambas a mano", "used": false},
 		{"text": "Quién fuera noche para caerte encima", "used": false},
 		{"text": "Oye, sabes la cancion de la nalga?\nNo, no me suena.\nTe la toco?", "used": false},
+		{"text": "¿Cómo dejó de fumar?\nDecidí fumar solo después del sexo.", "used": false},
+		{"text": "¿Cuál es la diferencia entre una llanta y 365 condones usados?\nUno es un Goodyear. El otro es un gran año.", "used": false},
 		{"text": "Como maldice un pollo a otro pollo\nCaldito seas!", "used": false}
 	],
 	"jokes": [
-		{"text": "“Siri, why am I still single?!” - Siri activates front camera.", "used": false}
+		{"text": "“Siri, why am I still single?!” - Siri activates front camera.", "used": false},
+		{"text": "What’s the difference between a tire and 365 used condoms?\nOnes a Goodyear. The other is a great year.", "used": false},
+		{"text": "A worm crawls out of a pile of spaghetti…\nIt says, “Damn, that was one hell of an orgy!”", "used": false},
+		{"text": "I'm thinking of reasons to go to Switzerland. The flag is a big plus.", "used": false},
+		{"text": "I was wondering why the baseball was getting bigger. Then it hit me.", "used": false},
+		{"text": "I didn't like my beard at first. Then it grew on me.", "used": false},
+		{"text": "I was up all night wondering where the sun went, but then it dawned on me.", "used": false},
+		{"text": "A burger walks into a bar. The bartender says 'Sorry, we don't serve food here'", "used": false},
+		{"text": "Where do generals keep their armies? In their sleevies!", "used": false},
+		{"text": "Orion’s Belt is a huge waist of space.", "used": false},
+		{"text": "Hear about the new restaurant called Karma?\nThere's no menu: You get what you deserve.", "used": false},
+		{"text": "How did you quit smoking?\nI decided to smoke only after sex.", "used": false}
 	],
 
 	"tracks": [{"race":"Cala Crash | Crash Cove", "banned":false, "used":false, "blue":false},

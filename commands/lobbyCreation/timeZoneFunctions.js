@@ -7,7 +7,7 @@ exports.isCorrectEmoji = function(emoji) {
     let correctEmoji = false;
 
     Object.values(config.timeZones).forEach(timeZone => {
-        if(config.timeZonesData[timeZone].emoji == emoji)
+        if(timeZone.emoji == emoji)
             correctEmoji = true;
     });
 

@@ -16,7 +16,7 @@ module.exports = {
         const color = "#FFFFFF";
         let time = "";
         Object.values(config.timeZones).forEach(timeZone => {
-            time += config.timeZonesData[timeZone].emoji + "  " + config.timeZonesData[timeZone].UTCZone + " " + timeZone + "\n";
+            time += timeZone.emoji + "  " + timeZone.UTCZone + " " + timeZone.name + "\n";
         });
         time = time.replace("NewYork", "New York");
 
@@ -28,7 +28,7 @@ module.exports = {
         let messageEmbed = await channel.send(embed);
                     
         Object.values(config.timeZones).forEach(async (timeZone) => {
-            await messageEmbed.react(config.timeZonesData[timeZone].emoji);
+            await messageEmbed.react(timeZone.emoji);
         });
 
         messageEmbed.awaitReactions((reaction, user) => user.id == message.author.id, { 

@@ -24,7 +24,7 @@ exports.readCommands = function(client) {
 
 exports.executeCommand = function(message, args, Discord, client, command) {
     
-    command = client.commands.get(command) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(command));;
+    command = client.commands.get(command) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(command));
     if (command.guildOnly && message.channel.type === 'dm') {
         return message.reply('I can\'t execute that command inside DMs!');
     }
