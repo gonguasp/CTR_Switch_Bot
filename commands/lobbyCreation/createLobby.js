@@ -8,7 +8,7 @@ module.exports = {
     description: "creates the lobby in the right channel",
     guildOnly: true,
     public: false,
-    async execute(message, lobby, Discord, client, args){
+    async execute(message, lobby, Discord, client, args) {
 
         const confirmReaction = "✅";
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
@@ -16,14 +16,11 @@ module.exports = {
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         let lobbyCompleted = false;
+        let playersPerLobby = 8;
 
-        let channel = message.channel;
-        for(const ch of message.guild.channels.cache.values()) {
-            if(ch.name == config.rankedLobbiesChannel) {
-                channel = ch;
-                break;
-            }
-        }
+        let channel = message.guild.channels.cache.find(ch => ch.name == config.rankedLobbiesChannel);
+        if(!channel)
+            channel = message.channel;
 
         const embed = new Discord.MessageEmbed()
             .setColor(color)
@@ -51,15 +48,14 @@ module.exports = {
                 .addField("Time", time, true)
                 .setFooter(footer);
 
-            if(reaction.message.channel == channel && users.length < 9) {
+            if(reaction.message.channel == channel && users.length <= playersPerLobby) {
+                if(users.length == playersPerLobby) {
+                    lobbyCompleted = true;
+                    newEmbed.addField("Tracks", genTracks.execute(), true);
+                }
                 messageEmbed.edit(newEmbed);
             }
-            else if(reaction.message.channel == channel && users.length == 9) {
-                lobbyCompleted = true;
-                newEmbed.addField("Tracks", genTracks.execute(), true);
-                messageEmbed.edit(newEmbed);
-            }
-            else if(users.length > 9) {
+            else if(reaction.message.channel == channel && users.length > playersPerLobby) {
                 await reaction.users.remove(user.id);
                 channel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
@@ -78,14 +74,13 @@ module.exports = {
 
                 const newEmbed = new Discord.MessageEmbed()
                     .setColor(color)
-                    .setTitle(title);
+                    .setTitle(title)
+                    .setFooter(footer);
 
                 if(usersString != "")
                     newEmbed.addField("\nPlayers", usersString, true);
 
-                newEmbed
-                    .addField("Time", time, true)
-                    .setFooter(footer);
+                newEmbed.addField("Time", time, true);
 
                 messageEmbed.edit(newEmbed);
             }
