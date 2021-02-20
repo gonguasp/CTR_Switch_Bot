@@ -1,6 +1,7 @@
 require("module-alias/register");
 
 const config = require('@config');
+const utils = require('@utils/utils.js');
 
 module.exports = {
     name: "gentracks",
@@ -16,8 +17,12 @@ module.exports = {
 		var max = 39;  
 		var media = Math.round(numRaces / 2);
 		var round = [];
+		
+		if(utils.areAllSacredOrBlueUsed(config.tracks, numRaces))
+			utils.restartUsability(config.tracks);
 
 		for(var i = 0; i < numRaces; i++) {
+
 		    var random = Math.floor(Math.random() * (max + 1 - min)) + min - 1; 
             
 		    if(config.tracks[random].used || (config.tracks[random].banned && !includeBannedTracks))

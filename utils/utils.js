@@ -47,6 +47,23 @@ exports.areAllUsed = function(array) {
 	return used == (array.length - 1);
 }
 
+exports.areAllSacredOrBlueUsed = function(tracks, numRaces) {
+
+    let totalSacred = 18;
+    let totalBlue = 19;
+
+	for(var i = 0; i < tracks.length; i++) {
+		if(tracks[i].used) {
+            if(tracks[i].blue)
+                totalBlue--;  
+            else
+                totalSacred--;          
+        }
+    }
+    
+    return totalSacred < (numRaces / 2) && totalSacred < (numRaces / 2);
+}
+
 exports.restartUsability = function(array) {
 	for(var i = 0; i < array.length; i++)
         array[i].used = false;

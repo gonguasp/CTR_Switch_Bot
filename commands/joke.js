@@ -16,6 +16,7 @@ module.exports = {
             while(config.jokes[random].used)
                 random = Math.round(Math.random() * (config.jokes.length - 1));
 
+            config.jokes[random].used = true;
             message.channel.send(config.jokes[random].text);
         }
     }
