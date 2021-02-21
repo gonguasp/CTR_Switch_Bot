@@ -7,14 +7,14 @@ const client = new Discord.Client();
 
 client.commands = utils.readCommands(client);
 
-client.on("message", message => {
-    if(!message.content.startsWith(config.prefix) || message.author.bot)
-        return;
 
-    const args = message.content.slice(config.prefix.length).split(" ");
-    let command = args.shift().toLowerCase();
-    
+client.on("message", message => {
     try {
+        if(!message.content.startsWith(config.prefix) || message.author.bot)
+            return;
+
+        const args = message.content.slice(config.prefix.length).split(" ");
+        let command = args.shift().toLowerCase();
         utils.executeCommand(message, args, Discord, client, command);
     } catch (error) {
         console.error(error);
@@ -22,6 +22,7 @@ client.on("message", message => {
         console.log("command = " + command);
     }
 });
+
 
 client.once("ready", () => {
     console.log("CTR_SwitchBot is online!");
