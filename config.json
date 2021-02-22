@@ -1,7 +1,9 @@
 {
 	"prefix": "!",
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
-	"commandsDirs": ["./commands/", "./commands/lobbyCreation/"],
+	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/"],
+	"imagesExtensions": [".jpg", ".png"],
+	"welcomeMemesDir": "./welcome_memes/",
 	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
 	"localTimeZone": {"UTCDifference": "+1"},
 	"timeZones":[
@@ -13,6 +15,7 @@
 		"@root": ".",
 		"@cmdGeneral": "./commands",
 		"@cmdLobbyCreation": "./commands/lobbyCreation",
+		"@cmdAdministration": "./commands/administration",
 		"@config": "./config.json",
 		"@utils": "./utils"
 	  },
