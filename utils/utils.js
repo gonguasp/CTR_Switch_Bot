@@ -78,3 +78,27 @@ exports.userHasRoles = function(message, roles) {
 
     return member.roles.cache.get(role.id) ? true : false;
 }
+
+
+exports.getChannelByName = function(message, channelName) {
+	return message.guild.channels.cache.find(ch => ch.name == channelName);
+}
+
+exports.getChannelById = function(message, id) {
+    id = id.replace("<#", "").replace(">", "");
+	return message.guild.channels.cache.find(ch => ch.id == id);
+}
+
+exports.getRoleByName = function(message, roleName) {
+	return message.guild.roles.cache.find(role => role.name == roleName);
+}
+
+exports.getWelcomeMemes = function() {
+    let images = [];
+
+    for(const extension of config.imagesExtensions) {
+        images = fs.readdirSync(config.welcomeMemesDir).filter(file => file.endsWith(extension));
+    }
+    
+    return images;
+}

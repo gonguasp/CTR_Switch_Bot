@@ -1,5 +1,6 @@
 require("module-alias/register");
 const config = require('@config');
+const utils = require('@utils/utils.js');
 
 const genTracks = require("@cmdLobbyCreation/genTracks.js");
 
@@ -10,6 +11,7 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
 
+        let role = utils.getRoleByName(message, config.rankedRole);
         const confirmReaction = "✅";
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
         const footer = "React with " + confirmReaction +  " if you're interested";
@@ -18,7 +20,7 @@ module.exports = {
         let lobbyCompleted = false;
         let playersPerLobby = 8;
 
-        let channel = message.guild.channels.cache.find(ch => ch.name == config.rankedLobbiesChannel);
+        let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
             channel = message.channel;
 
@@ -28,6 +30,7 @@ module.exports = {
             .addField("Time", time, true)
             .setFooter(footer);
 
+        channel.send("<@&" + role.id + ">");
         let messageEmbed = await channel.send(embed);
         messageEmbed.react(confirmReaction);
         let users = [];

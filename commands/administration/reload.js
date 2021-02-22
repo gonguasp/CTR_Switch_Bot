@@ -27,16 +27,16 @@ module.exports = {
 
         for(const dir of config.commandsDirs) {            
             if(fs.readdirSync(dir).filter(file => file == command.name + ".js").length) {
-                path = dir + command.name + ".js";
-                console.log(path.replace("commands/", ""));
+                console.log("reloading command " + dir + command.name + ".js");
+                path = (dir + command.name + ".js").replace("/commands", ".");
                 break;
             }
         }
 
-        delete require.cache[require.resolve(path.replace("commands/", ""))];
+        delete require.cache[require.resolve(path)];
 
         try { 
-            const newCommand = require(path.replace("commands/", ""));
+            const newCommand = require(path);
             message.client.commands.set(newCommand.name, newCommand);
             message.channel.send(`Command \`${command.name}\` was reloaded!`);
         } catch (error) {
