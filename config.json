@@ -1,6 +1,7 @@
 {
 	"prefix": "!",
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
+	"ownerId": "712342385463394456",
 	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/"],
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
