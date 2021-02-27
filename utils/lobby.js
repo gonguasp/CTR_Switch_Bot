@@ -12,8 +12,9 @@ exports.scheduleLobbyNotification = function(futureTask, usersString, time, mess
         futureTask.second.destroy();
     }
     
-    futureTast.first = createCron(usersString, time, message, notifications[0]);
-    futureTast.second = createCron(usersString, time, message, notifications[1]);
+    futureTask = {};
+    futureTask.first = createCron(usersString, time, message, notifications[0]);
+    futureTask.second = createCron(usersString, time, message, notifications[1]);
 
     return futureTask;
 }
@@ -60,20 +61,23 @@ function to24HH(localTimeZone) {
     return time;
 }
 
-function createCron(usersString, time, message, notification) {
-    if (time.minutes >= 0 && time.minutes < notification) {
-        let rest = notification - time.minutes;
-        time.minutes = 60 - rest;
-        time.hours = time.hours == 0 ? 23 : time.hours - 1;
+function createCron(usersString, time, message, notification) {    
+    let timeNotification = {};
+    timeNotification.minutes = time.minutes;
+    timeNotification.hours = time.hours;
+
+    if (timeNotification.minutes >= 0 && timeNotification.minutes < notification) {
+        let rest = notification - timeNotification.minutes;
+        timeNotification.minutes = 60 - rest;
+        timeNotification.hours = timeNotification.hours == 0 ? 23 : timeNotification.hours - 1;
     }
     else {
-        time.minutes -= notification;
+        timeNotification.minutes -= notification;
     }
 
-    return cron.schedule(time.minutes + " " + time.hours + " * * *", () => {
+    return cron.schedule(timeNotification.minutes + " " + timeNotification.hours + " * * *", () => {
         if(usersString != "") {
             message.channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
-            console.log("stopped task");
         }
     }, {
         scheduled: false,

@@ -80,8 +80,8 @@ exports.userHasRoles = function(message, roles) {
 }
 
 
-exports.getChannelByName = function(message, channelName) {
-	return message.guild.channels.cache.find(ch => ch.name == channelName);
+exports.getChannelByName = function(obj, channelName) {
+	return obj.guild.channels.cache.find(ch => ch.name == channelName);
 }
 
 exports.getChannelById = function(message, id) {

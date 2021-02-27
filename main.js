@@ -3,7 +3,7 @@ require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const Discord = require("discord.js");
-const client = new Discord.Client();
+const client = new Discord.Client(/*{retryLimit: 10}*/);
 
 client.commands = utils.readCommands(client);
 
@@ -23,9 +23,9 @@ client.on("message", message => {
     }
 });
 
-client.on("guildMemberAdd", async member => {
+client.on("guildMemberAdd", member => {
     try {
-        const channel = utils.getChannelByName(member, "⭐️welcome");
+        const channel = utils.getChannelByName(member, "⭐welcome");
         if (!channel) return;
 
         let memes = utils.getWelcomeMemes();
@@ -37,9 +37,25 @@ client.on("guildMemberAdd", async member => {
     }
 });
 
+client.on("uncaughtException", (err) => {
+    console.error("EXCEPTION UNCAUGHT = \n" + err);
+});
+
+client.on("unhandledRejection", (reason, promise) => {
+    console.error("REJECTION UNHANDLED = \n" + reason.stack || reason);
+});
+
+client.on("error", (code) => {
+    console.error("ERROR OCURRED = \n" + code);
+});
+
+client.once("exit", () => {
+    console.log("Turning off...");
+});
 
 client.once("ready", () => {
     console.log("CTR_SwitchBot is online!");
+    console.log("Active since " + new Date().toISOString());
 });
 
 client.login(config.token);

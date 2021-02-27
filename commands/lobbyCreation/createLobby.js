@@ -21,6 +21,7 @@ module.exports = {
         const color = "#FFFFFF";
         let lobbyCompleted = false;
         let playersPerLobby = 8;
+        let minPlayersPerLobby = 4;
         let notifications = [5, 30];
         let tracks = "";
 
@@ -34,13 +35,13 @@ module.exports = {
             .addField("Time", time, true)
             .setFooter(footer);
 
-        channel.send("<@&" + role.id + ">");
+        let rankedMessage = await channel.send("<@&" + role.id + ">");
         let messageEmbed = await channel.send(embed);
         messageEmbed.react(confirmReaction);
         let users = [];
         
         const filter = (reaction, user) => {
-            return reaction.emoji.name === confirmReaction;
+            return reaction.emoji.name === confirmReaction && !user.bot;
         };
         
         const collector = messageEmbed.createReactionCollector(filter, { dispose: true, time: lobbyUtils.getLobbyDuration(time) });
@@ -48,15 +49,7 @@ module.exports = {
         collector.on('collect', async (reaction, user) => {
             let usersString = "";
             users.push(user);
-            users.forEach(element => usersString += "<@" + element + ">\n");
-
-            try {
-                //futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
-                //futureTask.first.start();
-                //futureTask.second.start();
-            } catch (error) {
-                console.log(error);
-            }
+            users.forEach(element => usersString += "<@" + element + ">\n");            
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
@@ -65,16 +58,24 @@ module.exports = {
                 .addField("Time", time, true)
                 .setFooter(footer);
 
-            if(reaction.message.channel == channel && users.length <= playersPerLobby) {
-                if(users.length == playersPerLobby) {
-                    lobbyCompleted = true;
-                    if(tracks == "")
+            if(users.length <= playersPerLobby) {
+                lobbyCompleted = users.length == playersPerLobby;
+                if(users.length >= minPlayersPerLobby) {
+                    if(tracks == "") {
                         tracks = genTracks.execute();
+                    }
                     newEmbed.addField("Tracks", tracks, true);
+                    try {
+                        futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                        futureTask.first.start();
+                        futureTask.second.start();
+                    } catch (error) {
+                        console.log(error);
+                    }
                 }
                 messageEmbed.edit(newEmbed);
             }
-            else if(reaction.message.channel == channel && users.length > playersPerLobby) {
+            else if(users.length > playersPerLobby) {
                 await reaction.users.remove(user.id);
                 channel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
@@ -84,15 +85,7 @@ module.exports = {
             lobbyCompleted = false;
             let usersString = "";
             users = users.filter(item => item !== user);
-            users.forEach(element => usersString += "<@" + element + ">\n");
-
-            try {
-                //futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
-                //futureTask.first.start();
-                //futureTask.second.start();
-            } catch (error) {
-                console.log(error);
-            }
+            users.forEach(element => usersString += "<@" + element + ">\n");            
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
@@ -104,14 +97,37 @@ module.exports = {
 
             newEmbed.addField("Time", time, true);
 
-            if(tracks != "")
-                newEmbed.addField("Tracks", tracks, true);
+            if(users.length >= minPlayersPerLobby) {
+                if(tracks != "") {
+                    newEmbed.addField("Tracks", tracks, true);
+                }
+                try {
+                    futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                    futureTask.first.start();
+                    futureTask.second.start();
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+            else if(futureTask != undefined) {
+                try {
+                    futureTask.first.destroy();
+                    futureTask.second.destroy();
+                } catch (error) {
+                    console.log(error);
+                }
+            }
 
             messageEmbed.edit(newEmbed);
         });
 
         collector.on('end', async (reaction, user) => {
-            console.log("ended");
+            messageEmbed.delete();
+            rankedMessage.delete();
+            if(futureTask != undefined) {
+                futureTask.first.destroy();
+                futureTask.second.destroy();
+            }
         });
     }
 }

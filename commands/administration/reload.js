@@ -25,10 +25,11 @@ module.exports = {
         
         let path = "";
 
-        for(const dir of config.commandsDirs) {            
-            if(fs.readdirSync(dir).filter(file => file == command.name + ".js").length) {
-                console.log("reloading command " + dir + command.name + ".js");
-                path = (dir + command.name + ".js").replace("/commands", ".");
+        for(const dir of config.commandsDirs) {  
+            let fileName = fs.readdirSync(dir).find(file => file.toLowerCase() == command.name + ".js");
+            if(fs.readdirSync(dir).filter(file => file.toLowerCase() == command.name + ".js").length) {
+                console.log("reloading command " + dir + fileName);
+                path = (dir + fileName).replace("/commands", ".");
                 break;
             }
         }
