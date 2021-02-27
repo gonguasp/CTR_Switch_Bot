@@ -1,6 +1,5 @@
 const config = require('@config');
 const utils = require('@utils/utils.js');
-const lobbyUtils = require('@utils/lobby.js');
 
 module.exports = {
     name: "joke",
