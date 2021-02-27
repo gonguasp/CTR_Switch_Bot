@@ -76,7 +76,8 @@ module.exports = {
             }
             else if(users.length > playersPerLobby) {
                 await reaction.users.remove(user.id);
-                channel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
+                let lobbyChannel = utils.getChannelByName(message, config.lobbyChannels[lobby]);
+                lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
 

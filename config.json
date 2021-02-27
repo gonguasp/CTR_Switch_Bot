@@ -6,6 +6,13 @@
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
 	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
+	"lobbyChannels": {
+		"FFA": "👤ffa", 
+		"Duos": "👥duos", 
+		"3 - 3 vs": "👥👥war", 
+		"4 - 4 vs": "👥👥war", 
+		"Itemless": "👤💣⛔itemless"
+	},
 	"localTimeZone": {"value": "Madrid", "UTCDifference": "+1", "timeZone": "Europe/Madrid"},
 	"timeZones":[
 		{"name": "Mexico", "emoji": "1️⃣", "UTCZone": "UTC-6" , "timeZone": "America/Mexico_City"},
