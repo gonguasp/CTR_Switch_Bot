@@ -1,6 +1,7 @@
 require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
+const lobbyUtils = require('@utils/lobby.js');
 
 const genTracks = require("@cmdLobbyCreation/genTracks.js");
 
@@ -11,6 +12,7 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
 
+        let futureTask = undefined;
         let role = utils.getRoleByName(message, config.rankedRole);
         const confirmReaction = "✅";
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
@@ -19,6 +21,9 @@ module.exports = {
         const color = "#FFFFFF";
         let lobbyCompleted = false;
         let playersPerLobby = 8;
+        let minPlayersPerLobby = 4;
+        let notifications = [5, 30];
+        let tracks = "";
 
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
@@ -30,19 +35,21 @@ module.exports = {
             .addField("Time", time, true)
             .setFooter(footer);
 
-        channel.send("<@&" + role.id + ">");
+        let rankedMessage = await channel.send("<@&" + role.id + ">");
         let messageEmbed = await channel.send(embed);
         messageEmbed.react(confirmReaction);
         let users = [];
+        
+        const filter = (reaction, user) => {
+            return reaction.emoji.name === confirmReaction && !user.bot;
+        };
+        
+        const collector = messageEmbed.createReactionCollector(filter, { dispose: true, time: lobbyUtils.getLobbyDuration(time) });
 
-        client.on("messageReactionAdd", async (reaction, user) => {
-            if(messageEmbed.id != reaction.message.id || user.bot || !reaction.message.guild) return;
-            if(reaction.message.partial) await reaction.message.fetch();
-            if(reaction.partial) await reaction.fetch();
-            
+        collector.on('collect', async (reaction, user) => {
             let usersString = "";
             users.push(user);
-            users.forEach(element => usersString += "<@" + element + ">\n");
+            users.forEach(element => usersString += "<@" + element + ">\n");            
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
@@ -51,41 +58,75 @@ module.exports = {
                 .addField("Time", time, true)
                 .setFooter(footer);
 
-            if(reaction.message.channel == channel && users.length <= playersPerLobby) {
-                if(users.length == playersPerLobby) {
-                    lobbyCompleted = true;
-                    newEmbed.addField("Tracks", genTracks.execute(), true);
+            if(users.length <= playersPerLobby) {
+                lobbyCompleted = users.length == playersPerLobby;
+                if(users.length >= minPlayersPerLobby) {
+                    if(tracks == "") {
+                        tracks = genTracks.execute();
+                    }
+                    newEmbed.addField("Tracks", tracks, true);
+                    try {
+                        futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                        futureTask.first.start();
+                        futureTask.second.start();
+                    } catch (error) {
+                        console.log(error);
+                    }
                 }
                 messageEmbed.edit(newEmbed);
             }
-            else if(reaction.message.channel == channel && users.length > playersPerLobby) {
+            else if(users.length > playersPerLobby) {
                 await reaction.users.remove(user.id);
                 channel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
 
-        client.on("messageReactionRemove", async (reaction, user) => {
-            if(messageEmbed.id != reaction.message.id || user.bot || !reaction.message.guild) return;
-            if(reaction.message.partial) await reaction.message.fetch();
-            if(reaction.partial) await reaction.fetch();
-            
-            if(reaction.message.channel == channel) {
-                lobbyCompleted = false;
-                let usersString = "";
-                users = users.filter(item => item !== user);
-                users.forEach(element => usersString += "<@" + element + ">\n");
+        collector.on('remove', async (reaction, user) => {  
+            lobbyCompleted = false;
+            let usersString = "";
+            users = users.filter(item => item !== user);
+            users.forEach(element => usersString += "<@" + element + ">\n");            
 
-                const newEmbed = new Discord.MessageEmbed()
-                    .setColor(color)
-                    .setTitle(title)
-                    .setFooter(footer);
+            const newEmbed = new Discord.MessageEmbed()
+                .setColor(color)
+                .setTitle(title)
+                .setFooter(footer);
 
-                if(usersString != "")
-                    newEmbed.addField("\nPlayers", usersString, true);
+            if(usersString != "")
+                newEmbed.addField("\nPlayers", usersString, true);
 
-                newEmbed.addField("Time", time, true);
+            newEmbed.addField("Time", time, true);
 
-                messageEmbed.edit(newEmbed);
+            if(users.length >= minPlayersPerLobby) {
+                if(tracks != "") {
+                    newEmbed.addField("Tracks", tracks, true);
+                }
+                try {
+                    futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                    futureTask.first.start();
+                    futureTask.second.start();
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+            else if(futureTask != undefined) {
+                try {
+                    futureTask.first.destroy();
+                    futureTask.second.destroy();
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+
+            messageEmbed.edit(newEmbed);
+        });
+
+        collector.on('end', async (reaction, user) => {
+            messageEmbed.delete();
+            rankedMessage.delete();
+            if(futureTask != undefined) {
+                futureTask.first.destroy();
+                futureTask.second.destroy();
             }
         });
     }

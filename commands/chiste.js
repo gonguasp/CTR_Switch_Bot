@@ -8,16 +8,14 @@ module.exports = {
     public: true,
     execute(message, args, Discord, client) {
         
-        if(message.content != "joke") {
-            if(utils.areAllUsed(config.chistes))
-                utils.restartUsability();
+        if(utils.areAllUsed(config.chistes))
+            utils.restartUsability();
 
-            let random = Math.round(Math.random() * (config.chistes.length - 1));
-            while(config.chistes[random].used)
-                random = Math.round(Math.random() * (config.chistes.length - 1));
+        let random = Math.round(Math.random() * (config.chistes.length - 1));
+        while(config.chistes[random].used)
+            random = Math.round(Math.random() * (config.chistes.length - 1));
 
-            config.chistes[random].used = true;
-            message.channel.send(config.chistes[random].text);
-        }
+        config.chistes[random].used = true;
+        message.channel.send(config.chistes[random].text);
     }
 }
