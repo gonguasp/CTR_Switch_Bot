@@ -3,7 +3,7 @@ require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const createLobby = require("@cmdLobbyCreation/createLobby.js");
-const setLobbyTimeZone = require("@cmdLobbyCreation/setLobbyTimeZone.js");
+const lobbyUtils = require('@utils/lobbyUtils.js');
 
 module.exports = {
     name: "lobby",
@@ -51,7 +51,7 @@ module.exports = {
                         if(args[0] != "custom")
                             createLobby.execute(message, config.lobbies[message.content - 1], Discord, client, args);
                         else 
-                            setLobbyTimeZone.execute(message, Discord, config.lobbies[message.content - 1]);
+                        lobbyUtils.setLobbyTimeZone(message, Discord, config.lobbies[message.content - 1]);
                     }
                     else
                         message.reply("terminated: Invalid Response");    

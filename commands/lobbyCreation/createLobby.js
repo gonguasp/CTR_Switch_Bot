@@ -1,9 +1,7 @@
 require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
-const lobbyUtils = require('@utils/lobby.js');
-
-const genTracks = require("@cmdLobbyCreation/genTracks.js");
+const lobbyUtils = require('@utils/lobbyUtils.js');
 
 module.exports = {
     name: "createlobby",
@@ -14,6 +12,7 @@ module.exports = {
 
         let futureTask = undefined;
         let role = utils.getRoleByName(message, config.rankedRole);
+        const numTracks = 8;
         const confirmReaction = "✅";
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
         const footer = "React with " + confirmReaction +  " if you're interested";
@@ -24,7 +23,7 @@ module.exports = {
         let minPlayersPerLobby = 4;
         let notifications = [5, 30];
         let tracks = "";
-
+        
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
             channel = message.channel;
@@ -62,7 +61,7 @@ module.exports = {
                 lobbyCompleted = users.length == playersPerLobby;
                 if(users.length >= minPlayersPerLobby) {
                     if(tracks == "") {
-                        tracks = genTracks.execute();
+                        tracks = lobbyUtils.genTracks(numTracks);
                     }
                     newEmbed.addField("Tracks", tracks, true);
                     try {
@@ -77,7 +76,8 @@ module.exports = {
             }
             else if(users.length > playersPerLobby) {
                 await reaction.users.remove(user.id);
-                channel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
+                let lobbyChannel = utils.getChannelByName(message, config.lobbyChannels[lobby]);
+                lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
 

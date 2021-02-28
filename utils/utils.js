@@ -97,7 +97,10 @@ exports.getWelcomeMemes = function() {
     let images = [];
 
     for(const extension of config.imagesExtensions) {
-        images = fs.readdirSync(config.welcomeMemesDir).filter(file => file.endsWith(extension));
+        let memes = (fs.readdirSync(config.welcomeMemesDir).filter(file => file.endsWith(extension)));
+        for(const meme of memes) {
+            images.push(meme);
+        }
     }
     
     return images;
