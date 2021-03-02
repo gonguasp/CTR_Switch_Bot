@@ -51,7 +51,7 @@ module.exports = {
                         if(args[0] != "custom")
                             createLobby.execute(message, config.lobbies[message.content - 1], Discord, client, args);
                         else 
-                        lobbyUtils.setLobbyTimeZone(message, Discord, config.lobbies[message.content - 1]);
+                        lobbyUtils.setLobbyTimeZone(message, Discord, config.lobbies[message.content - 1], createLobby);
                     }
                     else
                         message.reply("terminated: Invalid Response");    

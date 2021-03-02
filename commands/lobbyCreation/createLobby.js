@@ -20,7 +20,7 @@ module.exports = {
         const color = "#FFFFFF";
         let lobbyCompleted = false;
         let playersPerLobby = 8;
-        let minPlayersPerLobby = 4;
+        let minPlayersPerLobby = 1;
         let notifications = [5, 30];
         let tracks = "";
         
@@ -65,7 +65,7 @@ module.exports = {
                     }
                     newEmbed.addField("Tracks", tracks, true);
                     try {
-                        futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                        futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
                         futureTask.first.start();
                         futureTask.second.start();
                     } catch (error) {
@@ -102,7 +102,7 @@ module.exports = {
                     newEmbed.addField("Tracks", tracks, true);
                 }
                 try {
-                    futureTask = lobbyUtils.scheduleLobbyNotification(futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                    futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
                     futureTask.first.start();
                     futureTask.second.start();
                 } catch (error) {

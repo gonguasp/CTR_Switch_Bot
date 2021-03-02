@@ -1,22 +1,23 @@
 require("module-alias/register");
 
-const createLobby = require("@cmdLobbyCreation/createLobby.js");
+let createLobby;
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
 
 
-exports.scheduleLobbyNotification = function(futureTask, usersString, time, message, notifications) {
+exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, time, message, notifications) {
     
     if(futureTask != undefined) {
         futureTask.first.destroy();
         futureTask.second.destroy();
     }
     
+    let channel = utils.getChannelByName(message, config.lobbyChannels[lobby]);
     futureTask = {};
-    futureTask.first = createCron(usersString, time, message, notifications[0]);
-    futureTask.second = createCron(usersString, time, message, notifications[1]);
+    futureTask.first = createCron(usersString, time, channel, notifications[0]);
+    futureTask.second = createCron(usersString, time, channel, notifications[1]);
 
     return futureTask;
 }
@@ -37,8 +38,9 @@ exports.getLobbyDuration = function(time) {
     return futureTime.getTime() - new Date().getTime();
 }
 
-exports.setLobbyTimeZone = async function (message, Discord, lobby){
+exports.setLobbyTimeZone = async function (message, Discord, lobby, modeuleCreateLobby){
 
+    createLobby = modeuleCreateLobby;
     const channel = message.channel;
     const title = "Set a timezone.";
     const color = "#FFFFFF";
@@ -243,7 +245,7 @@ function to24HH(localTimeZone) {
     return time;
 }
 
-function createCron(usersString, time, message, notification) {    
+function createCron(usersString, time, channel, notification) {    
     let timeNotification = {};
     timeNotification.minutes = time.minutes;
     timeNotification.hours = time.hours;
@@ -259,7 +261,7 @@ function createCron(usersString, time, message, notification) {
 
     return cron.schedule(timeNotification.minutes + " " + timeNotification.hours + " * * *", () => {
         if(usersString != "") {
-            message.channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
+            channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
         }
     }, {
         scheduled: false,

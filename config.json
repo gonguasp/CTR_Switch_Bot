@@ -1,8 +1,9 @@
 {
 	"prefix": "!",
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
+	"mongoDB": "mongodb://admin:1234@127.0.0.1:27017/ctr_switch_bot?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false",
 	"ownerId": "712342385463394456",
-	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/"],
+	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/", "./commands/setUpPlayer/"],
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
 	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
@@ -25,6 +26,8 @@
 		"@cmdLobbyCreation": "./commands/lobbyCreation",
 		"@cmdAdministration": "./commands/administration",
 		"@config": "./config.json",
+		"@models": "./db/models",
+		"@flags": "./utils/flags.json",
 		"@utils": "./utils"
 	  },
 	"hourFormat": {

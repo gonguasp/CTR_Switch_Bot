@@ -3,7 +3,19 @@ require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const Discord = require("discord.js");
+const mongoose = require("mongoose");
 const client = new Discord.Client(/*{retryLimit: 10}*/);
+
+
+mongoose.connect(config.mongoDB, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    userFindAndModify: false
+}).then(() => {
+    console.log("conxion con la base de datos exitosa");
+}).catch((err) => {
+    console.log(err);
+});
 
 client.commands = utils.readCommands(client);
 

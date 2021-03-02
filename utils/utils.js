@@ -1,6 +1,7 @@
 require("module-alias/register");
 
 const config = require('@config');
+const flags = require('@flags');
 const Discord = require("discord.js");
 const fs = require("fs");
 
@@ -104,4 +105,12 @@ exports.getWelcomeMemes = function() {
     }
     
     return images;
+}
+
+exports.isCountryFlag = function(flagEmoji) {
+    return flags.flagName.hasOwnProperty(flagEmoji) && flags.flagCodeMap.hasOwnProperty(flagEmoji);
+}
+
+exports.getCountryNameByFlag = function(flagEmoji) {
+    return flags.flagName[flagEmoji];
 }
