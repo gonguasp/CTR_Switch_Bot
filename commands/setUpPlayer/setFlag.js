@@ -20,7 +20,7 @@ module.exports = {
                 let emoji = collected.first().emoji.name;
                 if (utils.isCountryFlag(emoji)) {
                     let countryName = utils.getCountryNameByFlag(emoji);
-                    let player = PlayerSchema.where({ discordId: message.author.id })
+                    let player = PlayerSchema.where({ discordId: message.author.id });
                     player.findOne(async function (err, playerResponse) {
                         if(err) { console.log(err); return; }
                         if(playerResponse) {

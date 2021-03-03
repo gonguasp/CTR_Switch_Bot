@@ -18,8 +18,7 @@ module.exports = {
             return;
         }
 
-        PlayerSchema.where("playerName");
-        let player = PlayerSchema.where({ discordId: message.author.id })
+        let player = PlayerSchema.where({ discordId: message.author.id });
         player.findOne(async function (err, playerResponse) {
             if(err) { console.log(err); return; }
             if(playerResponse) {

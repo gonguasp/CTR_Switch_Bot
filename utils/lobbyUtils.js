@@ -6,8 +6,42 @@ const utils = require('@utils/utils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
 const PlayerSchema = require('@models/PlayerSchema.js');
+const MatchSchema = require('@models/MatchSchema.js');
 const flags = require('@flags');
 
+
+exports.saveLobby = async function (lobby, users) {
+    
+    let numMatch = 0;
+    await MatchSchema.where({}).countDocuments(function(err, count) {
+        if(err) { console.log(err); return; }
+        numMatch = count;
+    });
+    let match = await MatchSchema.create({
+        uuid: utils.generateUUID(),
+        matchNumber: numMatch,
+        lobbyModality: lobby,
+        numPlayers: users.lenth,
+        players: await getPlayersInfo(users)
+    });
+
+    match.save(); 
+    return numMatch;             
+}
+
+exports.deleteMessageInFuture = function (messagesArray, hours) {    
+    let date = new Date();
+    date.setHours(date.getHours() + hours);
+
+    cron.schedule(date.getMinutes() + " " + date.getHours() + " * * *", () => {
+        for(var i = 0; messagesArray.length; i++) {
+            messageArray[i].delete();
+        }
+    }, {
+        scheduled: false,
+        timezone: config.localTimeZone.timeZone
+    }).start();
+}
 
 exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, time, message, notifications) {
     
@@ -33,7 +67,7 @@ exports.parseTime = function(time) {
 exports.getLobbyDuration = function(time) {
     let timeParsed = this.parseTime(time);
     let futureTime = new Date();
-    futureTime.setHours(parseInt(futureTime.getHours() > timeParsed.hours ? futureTime.getHours() : timeParsed.hours) + 2);
+    futureTime.setHours(parseInt(futureTime.getHours() > timeParsed.hours ? futureTime.getHours() : timeParsed.hours));
 
     if(timeParsed.minutes != undefined)
         futureTime.setMinutes(timeParsed.minutes);
@@ -113,13 +147,13 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.generateScoresTemplate = async function (lobby, users) {
+exports.generateScoresTemplate = async function (lobby, users, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
-    let template = "Match # - " + lobby + "\n\n";
+    let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
     if(lobby == "FFA") {
         for(const user of users) {
-            let playerInfo = await getNameAndFlag(user);
+            let playerInfo = await getPlayerInfo(user);
             let username = user.username.substring(9, 0).padEnd(config.maxCharacersPlayerName);  
             let flag = " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
@@ -131,15 +165,23 @@ exports.generateScoresTemplate = async function (lobby, users) {
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
 
-async function getNameAndFlag(user) {
+
+async function getPlayersInfo(users) {
+    let playersInfoArray = [];
+    for(const user of users) {
+        playersInfoArray.push(await getPlayerInfo(user));
+    }
+
+    return playersInfoArray;
+}
+
+async function getPlayerInfo(user) {
     let playerInfo;
-    let player = PlayerSchema.where({ discordId: user.id })
+    let player = PlayerSchema.where({ discordId: user.id });
     await player.findOne(async function (err, playerResponse) {
         if(err) { console.log(err); return; }
         if(playerResponse) {
-            playerInfo = {};
-            playerInfo.playerName = playerResponse.playerName;
-            playerInfo.flag = playerResponse.flag;
+            playerInfo = playerResponse;
         }
     });
     return playerInfo;

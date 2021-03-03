@@ -8,11 +8,11 @@
 	"welcomeMemesDir": "./welcome_memes/",
 	"maxCharacersPlayerName": "9",
 	"lobbies": {
-		"FFA": { "value": "FFA", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "team": false }, 
-		"Duos": { "value": "Duos", "channel": "👥duos", "numRaces": 8, "minsPlayers": 4, "team": true }, 
-		"3 - 3 vs": { "value": "3 - 3 vs", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 6, "team": true }, 
-		"4 - 4 vs": { "value": "4 - 4 vs", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 8, "team": true }, 
-		"Itemless": { "value": "Itemless", "channel": "👤💣⛔itemless", "numRaces": 8, "minsPlayers": 3, "team": false }
+		"FFA": { "value": "FFA", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": false }, 
+		"Duos": { "value": "Duos", "channel": "👥duos", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": true }, 
+		"3 - 3 vs": { "value": "3 - 3 vs", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 6, "maxPlayers": 6, "team": true }, 
+		"4 - 4 vs": { "value": "4 - 4 vs", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 8, "maxPlayers": 8, "team": true }, 
+		"Itemless": { "value": "Itemless", "channel": "👤💣⛔itemless", "numRaces": 8, "minsPlayers": 3, "maxPlayers": 8, "team": false }
 	},
 	"localTimeZone": {"value": "Madrid", "UTCDifference": "+1", "timeZone": "Europe/Madrid"},
 	"timeZones":[

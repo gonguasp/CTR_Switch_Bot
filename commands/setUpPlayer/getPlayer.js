@@ -13,7 +13,7 @@ module.exports = {
     public: true,
     execute(message, args, Discord, client)  {
 
-        let player = PlayerSchema.where({ discordId: message.author.id })
+        let player = PlayerSchema.where({ discordId: message.author.id });
         player.findOne(async function (err, playerResponse) {
             if(err) { console.log(err); return; }
             if(playerResponse) {
