@@ -5,6 +5,8 @@ const config = require('@config');
 const utils = require('@utils/utils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
+const PlayerSchema = require('@models/PlayerSchema.js');
+const flags = require('@flags');
 
 
 exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, time, message, notifications) {
@@ -14,7 +16,7 @@ exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, tim
         futureTask.second.destroy();
     }
     
-    let channel = utils.getChannelByName(message, config.lobbyChannels[lobby]);
+    let channel = utils.getChannelByName(message, config.lobbies[lobby].channel);
     futureTask = {};
     futureTask.first = createCron(usersString, time, channel, notifications[0]);
     futureTask.second = createCron(usersString, time, channel, notifications[1]);
@@ -111,7 +113,46 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
+exports.generateScoresTemplate = async function (lobby, users) {
+    const ceros = getScoresTemplateCeros(lobby) + "\n";
+    let template = "Match # - " + lobby + "\n\n";
+
+    if(lobby == "FFA") {
+        for(const user of users) {
+            let playerInfo = await getNameAndFlag(user);
+            let username = user.username.substring(9, 0).padEnd(config.maxCharacersPlayerName);  
+            let flag = " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
+            template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
+        }
+
+        console.log(template);
+    }
+}
+
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
+
+async function getNameAndFlag(user) {
+    let playerInfo;
+    let player = PlayerSchema.where({ discordId: user.id })
+    await player.findOne(async function (err, playerResponse) {
+        if(err) { console.log(err); return; }
+        if(playerResponse) {
+            playerInfo = {};
+            playerInfo.playerName = playerResponse.playerName;
+            playerInfo.flag = playerResponse.flag;
+        }
+    });
+    return playerInfo;
+}
+
+function getScoresTemplateCeros(lobby) {
+    let ceros = "";
+    for(var i = 0; i < config.lobbies[lobby].numRaces; i++) {
+        ceros += "0|";
+    }
+
+    return ceros.slice(0, -1);
+}
 
 function isCorrectTime(time) {
 

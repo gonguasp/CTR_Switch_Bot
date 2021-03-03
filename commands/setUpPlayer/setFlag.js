@@ -29,6 +29,7 @@ module.exports = {
                         else {
                             player = await PlayerSchema.create({
                                 discordId: message.author.id,
+                                discordUserName: message.author.username,
                                 flag: emoji
                             });
                             player.save();

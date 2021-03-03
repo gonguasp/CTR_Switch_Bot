@@ -1,9 +1,10 @@
 require("module-alias/register");
 
 const PlayerSchema = require('@models/PlayerSchema.js');
+const config = require('@config');
 
 module.exports = {
-    name: "set_profile_name",
+    name: "set_player_name",
     description: "set the profile name for the user player",
     aliases: ["spn"],
     args: false,
@@ -12,23 +13,24 @@ module.exports = {
     public: true,
     async execute(message, args, Discord, client)  {
 
-        if(args[0].length > 9) {
+        if(args[0].length > config.maxCharacersPlayerName) {
             message.channel.send("Max character for the name are 9");
             return;
         }
 
-        PlayerSchema.where("profileName");
+        PlayerSchema.where("playerName");
         let player = PlayerSchema.where({ discordId: message.author.id })
         player.findOne(async function (err, playerResponse) {
             if(err) { console.log(err); return; }
             if(playerResponse) {
-                player.updateOne({ $set: { profileName: args[0] }}).exec();
+                player.updateOne({ $set: { playerName: args[0] }}).exec();
                 message.channel.send("updated to " + args[0] + "");
             }
             else {
                 player = await PlayerSchema.create({
                     discordId: message.author.id,
-                    profileName: args[0]
+                    discordUserName: message.author.username,
+                    playerName: args[0]
                 });
         
                 player.save();

@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 
 const playerSchema = new mongoose.Schema({
   discordId: { type: String, require: true, unique: true },
-  profileName: { type: String, require: false },
+  discordUserName: { type: String, require: true },
+  playerName: { type: String, require: false },
   friendCode: { type: String, require: false },
   clan: { type: String, require: false },
   flag: { type: String, require: false, default: "🇻🇦" },

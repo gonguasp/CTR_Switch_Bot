@@ -10,18 +10,19 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
 
-        let futureTask = undefined;
-        let role = utils.getRoleByName(message, config.rankedRole);
-        const numTracks = 8;
+        const numTracks = config.lobbies[lobby].numRaces;
         const confirmReaction = "✅";
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
         const footer = "React with " + confirmReaction +  " if you're interested";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
+        const maxPlayersPerLobby = 8;
+        const notifications = [5, 30];
+
         let lobbyCompleted = false;
-        let playersPerLobby = 8;
-        let minPlayersPerLobby = 1;
-        let notifications = [5, 30];
+        let futureTask = undefined;
+        let role = utils.getRoleByName(message, config.rankedRole);
+        let minPlayersPerLobby = config.lobbies[lobby].minsPlayers;
         let tracks = "";
         
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
@@ -50,6 +51,8 @@ module.exports = {
             users.push(user);
             users.forEach(element => usersString += "<@" + element + ">\n");            
 
+            lobbyUtils.generateScoresTemplate(lobby, users);
+
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
                 .setTitle(title)
@@ -57,8 +60,8 @@ module.exports = {
                 .addField("Time", time, true)
                 .setFooter(footer);
 
-            if(users.length <= playersPerLobby) {
-                lobbyCompleted = users.length == playersPerLobby;
+            if(users.length <= maxPlayersPerLobby) {
+                lobbyCompleted = users.length == maxPlayersPerLobby;
                 if(users.length >= minPlayersPerLobby) {
                     if(tracks == "") {
                         tracks = lobbyUtils.genTracks(numTracks);
@@ -74,9 +77,9 @@ module.exports = {
                 }
                 messageEmbed.edit(newEmbed);
             }
-            else if(users.length > playersPerLobby) {
+            else if(users.length > maxPlayersPerLobby) {
                 await reaction.users.remove(user.id);
-                let lobbyChannel = utils.getChannelByName(message, config.lobbyChannels[lobby]);
+                let lobbyChannel = utils.getChannelByName(message, config.lobbies[lobby].channel);
                 lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
@@ -86,6 +89,8 @@ module.exports = {
             let usersString = "";
             users = users.filter(item => item !== user);
             users.forEach(element => usersString += "<@" + element + ">\n");            
+
+            lobbyUtils.generateScoresTemplate(lobby, users);
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)

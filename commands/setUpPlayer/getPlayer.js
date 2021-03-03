@@ -19,7 +19,8 @@ module.exports = {
             if(playerResponse) {
                 let playerDTO = {};
                 playerDTO.discordId = playerResponse.discordId;
-                playerDTO.profileName = playerResponse.profileName;
+                playerDTO.discordUserName = playerResponse.discordUserName;
+                playerDTO.playerName = playerResponse.playerName;
                 playerDTO.friendCode = playerResponse.friendCode;
                 playerDTO.clan = playerResponse.clan;
                 playerDTO.flag = playerResponse.flag;
@@ -30,8 +31,6 @@ module.exports = {
                 playerDTO.timeZone = playerResponse.timeZon;
                 playerDTO.favCharacter = playerResponse.favCharacter;
                 playerDTO.favTrack = playerResponse.favTrack;
-                playerDTO.updated = playerResponse.updated;
-                playerDTO.created = playerResponse.created;
                 message.reply("\n" + JSON.stringify(playerDTO, null, '\t\t').replaceAll("\"", ""));
             }
             else {

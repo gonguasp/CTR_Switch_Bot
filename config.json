@@ -6,13 +6,13 @@
 	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/", "./commands/setUpPlayer/"],
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
-	"lobbies": ["FFA", "Duos", "3 - 3 vs", "4 - 4 vs", "Itemless"],
-	"lobbyChannels": {
-		"FFA": "👤ffa", 
-		"Duos": "👥duos", 
-		"3 - 3 vs": "👥👥war", 
-		"4 - 4 vs": "👥👥war", 
-		"Itemless": "👤💣⛔itemless"
+	"maxCharacersPlayerName": "9",
+	"lobbies": {
+		"FFA": { "value": "FFA", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "team": false }, 
+		"Duos": { "value": "Duos", "channel": "👥duos", "numRaces": 8, "minsPlayers": 4, "team": true }, 
+		"3 - 3 vs": { "value": "3 - 3 vs", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 6, "team": true }, 
+		"4 - 4 vs": { "value": "4 - 4 vs", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 8, "team": true }, 
+		"Itemless": { "value": "Itemless", "channel": "👤💣⛔itemless", "numRaces": 8, "minsPlayers": 3, "team": false }
 	},
 	"localTimeZone": {"value": "Madrid", "UTCDifference": "+1", "timeZone": "Europe/Madrid"},
 	"timeZones":[
