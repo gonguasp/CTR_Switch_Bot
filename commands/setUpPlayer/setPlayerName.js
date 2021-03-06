@@ -23,7 +23,6 @@ module.exports = {
             if(err) { console.log(err); return; }
             if(playerResponse) {
                 player.updateOne({ $set: { playerName: args[0] }}).exec();
-                message.channel.send("updated to " + args[0] + "");
             }
             else {
                 player = await PlayerSchema.create({
@@ -33,8 +32,8 @@ module.exports = {
                 });
         
                 player.save();
-                message.channel.send("created to " + args[0] + "!");
             }
+            message.channel.send("updated to " + args[0] + "!");
         });
     }
 }

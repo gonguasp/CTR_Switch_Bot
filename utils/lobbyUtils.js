@@ -10,39 +10,6 @@ const MatchSchema = require('@models/MatchSchema.js');
 const flags = require('@flags');
 
 
-exports.saveLobby = async function (lobby, users) {
-    
-    let numMatch = 0;
-    await MatchSchema.where({}).countDocuments(function(err, count) {
-        if(err) { console.log(err); return; }
-        numMatch = count;
-    });
-    let match = await MatchSchema.create({
-        uuid: utils.generateUUID(),
-        matchNumber: numMatch,
-        lobbyModality: lobby,
-        numPlayers: users.lenth,
-        players: await getPlayersInfo(users)
-    });
-
-    match.save(); 
-    return numMatch;             
-}
-
-exports.deleteMessageInFuture = function (messagesArray, hours) {    
-    let date = new Date();
-    date.setHours(date.getHours() + hours);
-
-    cron.schedule(date.getMinutes() + " " + date.getHours() + " * * *", () => {
-        for(var i = 0; messagesArray.length; i++) {
-            messageArray[i].delete();
-        }
-    }, {
-        scheduled: false,
-        timezone: config.localTimeZone.timeZone
-    }).start();
-}
-
 exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, time, message, notifications) {
     
     if(futureTask != undefined) {
@@ -147,7 +114,55 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.generateScoresTemplate = async function (lobby, users, numMatch) {
+exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby) {
+    deleteMessageInFuture(messagesArray, deleteMessageInHours);
+    if(futureTask != undefined) {
+        futureTask.first.destroy();
+        futureTask.second.destroy();
+        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
+
+        let scoresTemplate = await generateScoresTemplate(lobby, users, await saveLobby(lobby, users));
+        lobbyChannel.send(scoresTemplate);
+    }
+}
+
+////////////////////////////////////////////////// PRIVATE FUNCTIONS
+
+
+async function saveLobby(lobby, users) {
+    
+    let numMatch = 0;
+    await MatchSchema.where({}).countDocuments(function(err, count) {
+        if(err) { console.log(err); return; }
+        numMatch = count;
+    });
+    let match = await MatchSchema.create({
+        uuid: utils.generateUUID(),
+        matchNumber: numMatch,
+        lobbyModality: lobby,
+        numPlayers: users.lenth,
+        players: await getPlayersInfo(users)
+    });
+
+    match.save(); 
+    return numMatch;             
+}
+
+function deleteMessageInFuture(messagesArray, hours) {    
+    let date = new Date();
+    date.setHours(date.getHours() + hours);
+
+    cron.schedule(date.getMinutes() + " " + date.getHours() + " * * *", () => {
+        for(var i = 0; messagesArray.length; i++) {
+            messagesArray[i].delete();
+        }
+    }, {
+        scheduled: false,
+        timezone: config.localTimeZone.timeZone
+    }).start();
+}
+
+async function generateScoresTemplate(lobby, users, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
     let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
@@ -158,13 +173,24 @@ exports.generateScoresTemplate = async function (lobby, users, numMatch) {
             let flag = " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
         }
-
-        console.log(template);
     }
+
+    const scoresTemplateEmbed = new Discord.MessageEmbed()
+        .setColor("RANDOM")
+        .addField("Scores template", template + "\n[Open template on gb.hlorenzi.com](https://gb.hlorenzi.com/table?data=" + encodeURI(template).replaceAll("#", "%23") + ")", true);
+
+    return scoresTemplateEmbed;
 }
 
-////////////////////////////////////////////////// PRIVATE FUNCTIONS
-
+function getEmbedPlayerAndTracks(users, tracks) {
+    let usersString = "";
+    users.forEach(element => usersString += "<@" + element + ">\n");   
+    const newEmbed = new Discord.MessageEmbed()
+        .setColor("RANDOM")
+        .addField("Players", usersString, true)
+        .addField("Tracks", tracks, true);
+    return newEmbed;
+}
 
 async function getPlayersInfo(users) {
     let playersInfoArray = [];

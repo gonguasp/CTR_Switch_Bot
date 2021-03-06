@@ -2,6 +2,7 @@ require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const lobbyUtils = require('@utils/lobbyUtils.js');
+const playerUtils = require('@utils/playerUtils.js');
 
 module.exports = {
     name: "createlobby",
@@ -11,19 +12,18 @@ module.exports = {
     async execute(message, lobby, Discord, client, args) {
 
         const numTracks = config.lobbies[lobby].numRaces;
-        const confirmReaction = "✅";
         const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
-        const footer = "React with " + confirmReaction +  " if you're interested";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         const maxPlayersPerLobby = config.lobbies[lobby].maxPlayers;
+        const minPlayersPerLobby = config.lobbies[lobby].minsPlayers;
         const notifications = [5, 30];
         const deleteMessageInHours = 2;
+        const lobbyChannel = utils.getChannelByName(message, config.lobbies[lobby].channel);
 
         let lobbyCompleted = false;
         let futureTask = undefined;
         let role = utils.getRoleByName(message, config.rankedRole);
-        let minPlayersPerLobby = config.lobbies[lobby].minsPlayers;
         let tracks = "";
         let users = [];
         
@@ -34,15 +34,14 @@ module.exports = {
         const embed = new Discord.MessageEmbed()
             .setColor(color)
             .setTitle(title)
-            .addField("Time", time, true)
-            .setFooter(footer);
+            .addField("Time", time, true);
 
         let rankedMessage = await channel.send("<@&" + role.id + ">");
         let messageEmbed = await channel.send(embed);
-        messageEmbed.react(confirmReaction);
+        messageEmbed.react(config.emojis.confirm);
         
         const filter = (reaction, user) => {
-            return reaction.emoji.name === confirmReaction && !user.bot;
+            return reaction.emoji.name === config.emojis.confirm && !user.bot;
         };
         
         const collector = messageEmbed.createReactionCollector(filter, { dispose: true, time: lobbyUtils.getLobbyDuration(time) });
@@ -51,16 +50,13 @@ module.exports = {
             let usersString = "";
             users.push(user);
             users.forEach(element => usersString += "<@" + element + ">\n");            
-
-            // quitar cuando la generacion de la tabla de scores funcione perfecta
-            lobbyUtils.generateScoresTemplate(lobby, users, await lobbyUtils.saveLobby(lobby, users));
+            playerUtils.createPlayerIfNotExist(user);
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
                 .setTitle(title)
                 .addField("\nPlayers", usersString, true)
-                .addField("Time", time, true)
-                .setFooter(footer);
+                .addField("Time", time, true);
 
             if(users.length <= maxPlayersPerLobby) {
                 lobbyCompleted = users.length == maxPlayersPerLobby;
@@ -69,19 +65,14 @@ module.exports = {
                         tracks = lobbyUtils.genTracks(numTracks);
                     }
                     newEmbed.addField("Tracks", tracks, true);
-                    try {
-                        futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
-                        futureTask.first.start();
-                        futureTask.second.start();
-                    } catch (error) {
-                        console.log(error);
-                    }
+                    futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                    futureTask.first.start();
+                    futureTask.second.start();
                 }
                 messageEmbed.edit(newEmbed);
             }
             else if(users.length > maxPlayersPerLobby) {
                 await reaction.users.remove(user.id);
-                let lobbyChannel = utils.getChannelByName(message, config.lobbies[lobby].channel);
                 lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
             }
         });
@@ -90,15 +81,11 @@ module.exports = {
             lobbyCompleted = false;
             let usersString = "";
             users = users.filter(item => item !== user);
-            users.forEach(element => usersString += "<@" + element + ">\n");            
-
-            // quitar cuando la generacion de la tabla de scores funcione perfecta
-            lobbyUtils.generateScoresTemplate(lobby, users, await lobbyUtils.saveLobby(lobby, users));
+            users.forEach(element => usersString += "<@" + element + ">\n");                        
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
-                .setTitle(title)
-                .setFooter(footer);
+                .setTitle(title);
 
             if(usersString != "")
                 newEmbed.addField("\nPlayers", usersString, true);
@@ -108,22 +95,14 @@ module.exports = {
             if(users.length >= minPlayersPerLobby) {
                 if(tracks != "") {
                     newEmbed.addField("Tracks", tracks, true);
-                }
-                try {
-                    futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
-                    futureTask.first.start();
-                    futureTask.second.start();
-                } catch (error) {
-                    console.log(error);
-                }
+                }        
+                futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, usersString, lobbyUtils.parseTime(time), message, notifications);
+                futureTask.first.start();
+                futureTask.second.start();
             }
             else if(futureTask != undefined) {
-                try {
-                    futureTask.first.destroy();
-                    futureTask.second.destroy();
-                } catch (error) {
-                    console.log(error);
-                }
+                futureTask.first.destroy();
+                futureTask.second.destroy();
             }
 
             messageEmbed.edit(newEmbed);
@@ -131,12 +110,7 @@ module.exports = {
 
         collector.on('end', async (reaction, user) => {
             let messagesArray = [messageEmbed, rankedMessage];
-            lobbyUtils.deleteMessageInFuture(messagesArray, deleteMessageInHours);
-            if(futureTask != undefined) {
-                futureTask.first.destroy();
-                futureTask.second.destroy();
-                lobbyUtils.generateScoresTemplate(lobby, users, await lobbyUtils.saveLobby(lobby, users));
-            }
+            lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby);
         });
     }
 }

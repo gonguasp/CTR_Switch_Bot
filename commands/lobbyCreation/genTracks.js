@@ -7,6 +7,7 @@ module.exports = {
     name: "gentracks",
     description: "generates random tracks",
 	guildOnly: true,
+	aliases: ["tracks", "rnd"],
 	public: true,
     execute(message, args, Discord, client){
 		if(!args.length) {

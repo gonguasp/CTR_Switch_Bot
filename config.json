@@ -41,7 +41,8 @@
 	"privilegiesRole": ["Admin", "Coordinator"],
 	"emojis": {
 		"yes": "👍",
-		"no": "👎"
+		"no": "👎",
+		"confirm": "✅"
 	},
 
 
