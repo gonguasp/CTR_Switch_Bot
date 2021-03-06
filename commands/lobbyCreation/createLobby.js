@@ -2,7 +2,6 @@ require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const lobbyUtils = require('@utils/lobbyUtils.js');
-const playerUtils = require('@utils/playerUtils.js');
 
 module.exports = {
     name: "createlobby",
@@ -50,7 +49,6 @@ module.exports = {
             let usersString = "";
             users.push(user);
             users.forEach(element => usersString += "<@" + element + ">\n");            
-            playerUtils.createPlayerIfNotExist(user);
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)

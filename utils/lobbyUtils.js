@@ -7,6 +7,7 @@ const Discord = require("discord.js");
 var cron = require('node-cron');
 const PlayerSchema = require('@models/PlayerSchema.js');
 const MatchSchema = require('@models/MatchSchema.js');
+const rankUtils = require('@utils/rankUtils.js');
 const flags = require('@flags');
 
 
@@ -115,6 +116,7 @@ exports.genTracks = function (numRaces) {
 }
 
 exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby) {
+    users.forEach(async (user) => { createPlayerIfNotExist(user); rankUtils.createPlayerRank(user) });
     deleteMessageInFuture(messagesArray, deleteMessageInHours);
     if(futureTask != undefined) {
         futureTask.first.destroy();
@@ -128,6 +130,21 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
 
+
+async function createPlayerIfNotExist(user) {
+    let player = PlayerSchema.where({ discordId: user.id });
+    player.findOne(async function (err, playerResponse) {
+        if(err) { console.log(err); return; }
+        if(!playerResponse) {
+            player = await PlayerSchema.create({
+            discordId: user.id,
+            discordUserName: user.username
+        });
+    
+        player.save();
+        }
+    });
+}
 
 async function saveLobby(lobby, users) {
     
