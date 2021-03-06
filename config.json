@@ -36,6 +36,7 @@
 		"horaEU": "HH"
 	},
 	"rankedLobbiesChannel": "ranked-lobbies",
+	"resultsRankedChannel": "results-register",
 	"suggestionChannel": "suggestions",
 	"rankedRole": "Ranked",
 	"privilegiesRole": ["Admin", "Coordinator"],

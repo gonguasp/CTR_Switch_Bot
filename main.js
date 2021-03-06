@@ -22,6 +22,8 @@ client.commands = utils.readCommands(client);
 client.on("message", message => {
     let command;
     try {
+        utils.processIfRankedResults(message);
+
         if(!message.content.startsWith(config.prefix) || message.author.bot)
             return;
 

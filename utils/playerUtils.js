@@ -20,5 +20,4 @@ exports.createPlayerIfNotExist = async function (user) {
         player.save();
         }
     });
-
 }

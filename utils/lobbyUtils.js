@@ -120,7 +120,7 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
         futureTask.first.destroy();
         futureTask.second.destroy();
         lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
-
+        
         let scoresTemplate = await generateScoresTemplate(lobby, users, await saveLobby(lobby, users));
         lobbyChannel.send(scoresTemplate);
     }
@@ -166,6 +166,7 @@ async function generateScoresTemplate(lobby, users, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
     let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
+    // hacer switch en un futuro
     if(lobby == "FFA") {
         for(const user of users) {
             let playerInfo = await getPlayerInfo(user);
