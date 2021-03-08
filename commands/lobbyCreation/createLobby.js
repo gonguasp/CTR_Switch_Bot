@@ -2,6 +2,7 @@ require("module-alias/register");
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const lobbyUtils = require('@utils/lobbyUtils.js');
+const rankUtils = require('@utils/rankUtils.js');
 
 module.exports = {
     name: "createlobby",
@@ -9,9 +10,8 @@ module.exports = {
     guildOnly: true,
     public: false,
     async execute(message, lobby, Discord, client, args) {
-
         const numTracks = config.lobbies[lobby].numRaces;
-        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n";
+        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n6 am Jakarta/Indonesia\n";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         const maxPlayersPerLobby = config.lobbies[lobby].maxPlayers;
@@ -25,6 +25,7 @@ module.exports = {
         let role = utils.getRoleByName(message, config.rankedRole);
         let tracks = "";
         let users = [];
+        let playersRank = [];
         
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
@@ -47,13 +48,21 @@ module.exports = {
 
         collector.on('collect', async (reaction, user) => {
             let usersString = "";
+            let playerRankString = "";
             users.push(user);
-            users.forEach(element => usersString += "<@" + element + ">\n");            
+            users.forEach(element => usersString += "<@" + element + ">\n");          
+
+            await lobbyUtils.createPlayerIfNotExist(user); 
+            await rankUtils.createPlayerRankIfNotExists(user);
+            let playerRank = await rankUtils.findPlayerRank(user);
+            playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
+            playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
                 .setTitle(title)
                 .addField("\nPlayers", usersString, true)
+                .addField("\nIDs & Ranks", playerRankString, true)
                 .addField("Time", time, true);
 
             if(users.length <= maxPlayersPerLobby) {
@@ -78,15 +87,22 @@ module.exports = {
         collector.on('remove', async (reaction, user) => {  
             lobbyCompleted = false;
             let usersString = "";
+            let playerRankString = "";
             users = users.filter(item => item !== user);
-            users.forEach(element => usersString += "<@" + element + ">\n");                        
+            users.forEach(element => usersString += "<@" + element + ">\n");    
+
+            let playerRank = await rankUtils.findPlayerRank(user);
+            playerRank = rankUtils.getRankInfo(lobby, playerRank);
+            playersRank = playersRank.filter(item => item.id !== playerRank.id);                  
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
                 .setTitle(title);
 
-            if(usersString != "")
-                newEmbed.addField("\nPlayers", usersString, true);
+            if(usersString != "") {
+                newEmbed.addField("\nPlayers", usersString, true)
+                        .addField("\nIDs & Ranks", playerRankString, true);
+            }
 
             newEmbed.addField("Time", time, true);
 
@@ -111,4 +127,5 @@ module.exports = {
             lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby);
         });
     }
+
 }

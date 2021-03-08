@@ -7,7 +7,6 @@ const Discord = require("discord.js");
 var cron = require('node-cron');
 const PlayerSchema = require('@models/PlayerSchema.js');
 const MatchSchema = require('@models/MatchSchema.js');
-const rankUtils = require('@utils/rankUtils.js');
 const flags = require('@flags');
 
 
@@ -35,10 +34,17 @@ exports.parseTime = function(time) {
 exports.getLobbyDuration = function(time) {
     let timeParsed = this.parseTime(time);
     let futureTime = new Date();
-    futureTime.setHours(parseInt(futureTime.getHours() > timeParsed.hours ? futureTime.getHours() : timeParsed.hours));
 
-    if(timeParsed.minutes != undefined)
+    if(futureTime.getHours() > timeParsed.hours) {
+        futureTime.setHours(parseInt(24) + parseInt(timeParsed.hours));
+    }
+    else {
+        futureTime.setHours(timeParsed.hours);
+    }
+
+    if(timeParsed.minutes != undefined) {
         futureTime.setMinutes(timeParsed.minutes);
+    }
     return futureTime.getTime() - new Date().getTime();
 }
 
@@ -116,7 +122,6 @@ exports.genTracks = function (numRaces) {
 }
 
 exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby) {
-    users.forEach(async (user) => { createPlayerIfNotExist(user); rankUtils.createPlayerRank(user) });
     deleteMessageInFuture(messagesArray, deleteMessageInHours);
     if(futureTask != undefined) {
         futureTask.first.destroy();
@@ -128,23 +133,23 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
     }
 }
 
-////////////////////////////////////////////////// PRIVATE FUNCTIONS
-
-
-async function createPlayerIfNotExist(user) {
+exports.createPlayerIfNotExist = async function(user) {
     let player = PlayerSchema.where({ discordId: user.id });
     player.findOne(async function (err, playerResponse) {
         if(err) { console.log(err); return; }
         if(!playerResponse) {
             player = await PlayerSchema.create({
-            discordId: user.id,
-            discordUserName: user.username
-        });
+                discordId: user.id,
+                discordUserName: user.username
+            });
     
-        player.save();
+            player.save();
         }
     });
 }
+
+////////////////////////////////////////////////// PRIVATE FUNCTIONS
+
 
 async function saveLobby(lobby, users) {
     
@@ -187,8 +192,9 @@ async function generateScoresTemplate(lobby, users, numMatch) {
     if(lobby == "FFA") {
         for(const user of users) {
             let playerInfo = await getPlayerInfo(user);
-            let username = user.username.substring(9, 0).padEnd(config.maxCharacersPlayerName);  
-            let flag = " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
+            let username = user.username.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
+            let flag = playerInfo == undefined ? " [VA] " : " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
+            if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:");console.log(user); }
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
         }
     }

@@ -18,6 +18,18 @@ module.exports = {
             return;
         }
 
+        let duplicate = false;
+        let player = PlayerSchema.where({ playerName: args[0] });
+        player.findOne(async function (err, playerResponse) {
+            if(err) { console.log(err); return; }
+            if(playerResponse) {
+                message.channel.reply("the player " + playerResponse.discordUserName + " already has that player name and duplicates are not allowed.");
+                
+            }
+        });
+
+        if(duplicate) { return; }
+
         let player = PlayerSchema.where({ discordId: message.author.id });
         player.findOne(async function (err, playerResponse) {
             if(err) { console.log(err); return; }
