@@ -121,14 +121,14 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby) {
+exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby, averageRank) {
     deleteMessageInFuture(messagesArray, deleteMessageInHours);
     if(futureTask != undefined) {
         futureTask.first.destroy();
         futureTask.second.destroy();
         lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
         
-        let scoresTemplate = await generateScoresTemplate(lobby, users, await saveLobby(lobby, users));
+        let scoresTemplate = await generateScoresTemplate(lobby, users, await saveLobby(lobby, users, averageRank));
         lobbyChannel.send(scoresTemplate);
     }
 }
@@ -151,7 +151,7 @@ exports.createPlayerIfNotExist = async function(user) {
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
 
 
-async function saveLobby(lobby, users) {
+async function saveLobby(lobby, users, averageRank) {
     
     let numMatch = 0;
     await MatchSchema.where({}).countDocuments(function(err, count) {
@@ -163,7 +163,8 @@ async function saveLobby(lobby, users) {
         matchNumber: numMatch,
         lobbyModality: lobby,
         numPlayers: users.lenth,
-        players: await getPlayersInfo(users)
+        players: await getPlayersInfo(users),
+        averageRank: averageRank
     });
 
     match.save(); 
@@ -175,7 +176,7 @@ function deleteMessageInFuture(messagesArray, hours) {
     date.setHours(date.getHours() + hours);
 
     cron.schedule(date.getMinutes() + " " + date.getHours() + " * * *", () => {
-        for(var i = 0; messagesArray.length; i++) {
+        for(var i = 0; i < messagesArray.length; i++) {
             messagesArray[i].delete();
         }
     }, {

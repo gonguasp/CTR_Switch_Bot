@@ -26,6 +26,7 @@ module.exports = {
         let tracks = "";
         let users = [];
         let playersRank = [];
+        let averageRank = 0;
         
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
@@ -58,11 +59,14 @@ module.exports = {
             playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
             playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
 
+            averageRank = rankUtils.calculateAverageRank(playersRank);
+
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
                 .setTitle(title)
                 .addField("\nPlayers", usersString, true)
                 .addField("\nIDs & Ranks", playerRankString, true)
+                .addField("\nAverage rank", averageRank, true)
                 .addField("Time", time, true);
 
             if(users.length <= maxPlayersPerLobby) {
@@ -93,7 +97,10 @@ module.exports = {
 
             let playerRank = await rankUtils.findPlayerRank(user);
             playerRank = rankUtils.getRankInfo(lobby, playerRank);
-            playersRank = playersRank.filter(item => item.id !== playerRank.id);                  
+            playersRank = playersRank.filter(item => item.id !== playerRank.id);  
+            playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+            
+            averageRank = rankUtils.calculateAverageRank(playersRank);
 
             const newEmbed = new Discord.MessageEmbed()
                 .setColor(color)
@@ -101,7 +108,8 @@ module.exports = {
 
             if(usersString != "") {
                 newEmbed.addField("\nPlayers", usersString, true)
-                        .addField("\nIDs & Ranks", playerRankString, true);
+                        .addField("\nIDs & Ranks", playerRankString, true)
+                        .addField("\nAverage rank", averageRank, true);
             }
 
             newEmbed.addField("Time", time, true);
@@ -124,7 +132,7 @@ module.exports = {
 
         collector.on('end', async (reaction, user) => {
             let messagesArray = [messageEmbed, rankedMessage];
-            lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby);
+            lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby, averageRank);
         });
     }
 

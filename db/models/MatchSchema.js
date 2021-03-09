@@ -7,6 +7,8 @@ const matchSchema = new mongoose.Schema({
   lobbyModality: { type: String, require: true },
   numPlayers: { type: Number, require: true },
   players: { type: [PlayerSchema], require: true },
+  averageRank: { type: Number, require: true },
+  teams: { type: [[PlayerSchema]], require: false },
   scores: { type: String, require: false },
   created: { type: Date, default: Date.now }  
 });
