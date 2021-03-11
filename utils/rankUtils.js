@@ -16,7 +16,7 @@ exports.createPlayerRankIfNotExists = async function(player) {
                 playerDiscordId: player.id
             });
     
-            rankSchema.save();
+            await rankSchema.save();
         }
     });
 }
@@ -84,11 +84,11 @@ exports.processIfRankedResults = async function(message) {
 async function calculateAndSaveRanks(winnersLosers, rankedInfo) {
     winnersLosers.forEach( await function (player) {
         let playerRank = getPlayerRank(player.discordId);
-        let probabilityWins = 1 / (1 + Math.pow(10, ((-200/*rankedInfo.averageRank - playerRank[rankedInfo.lobbyModality]*/) / 400)));
-        let rating = /*playerRank[rankedInfo.lobbyModality]*/1200 + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
+        let probabilityWins = 1 / (1 + Math.pow(10, ((rankedInfo.averageRank - playerRank[rankedInfo.lobbyModality]) / 400)));
+        let rating = playerRank[rankedInfo.lobbyModality] + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
         let playerRanked = {
             playerName: player.info.playerName ? player.info.playerName : player.info.discordUserName,
-            previusRank: 1200/*playerRank[rankedInfo.lobbyModality]*/,
+            previusRank: playerRank[rankedInfo.lobbyModality],
             rankChange: Math.round(config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2)) * 100) / 100,
             currentRank: rating
         };

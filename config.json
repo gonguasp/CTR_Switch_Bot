@@ -8,6 +8,7 @@
 	"welcomeMemesDir": "./welcome_memes/",
 	"maxCharacersPlayerName": "9",
 	"ELOrankConstK": "30",
+	"defaultFlag": "🇻🇦",
 	"lobbies": {
 		"FFA": { "value": "FFA", "rankName":"ffa", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": false }, 
 		"Duos": { "value": "Duos", "rankName":"duos", "channel": "👥duos", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": true }, 

@@ -134,18 +134,23 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
 }
 
 exports.createPlayerIfNotExist = async function(user) {
-    let player = PlayerSchema.where({ discordId: user.id });
-    player.findOne(async function (err, playerResponse) {
+    let player;
+    let playerSchema = PlayerSchema.where({ discordId: user.id });
+    await playerSchema.findOne(async function (err, playerResponse) {
         if(err) { console.log(err); return; }
         if(!playerResponse) {
-            player = await PlayerSchema.create({
+            await PlayerSchema.create({
                 discordId: user.id,
                 discordUserName: user.username
             });
-    
-            player.save();
         }
+        else { player = playerResponse; }
     });
+    return player;
+}
+
+exports.getPlayer = async function (user) {
+    return await getPlayerInfo(user);
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
