@@ -1,22 +1,26 @@
 require("module-alias/register");
 
-const createLobby = require("@cmdLobbyCreation/createLobby.js");
+let createLobby;
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
+const PlayerSchema = require('@models/PlayerSchema.js');
+const MatchSchema = require('@models/MatchSchema.js');
+const flags = require('@flags');
 
 
-exports.scheduleLobbyNotification = function(futureTask, usersString, time, message, notifications) {
+exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, time, message, notifications) {
     
     if(futureTask != undefined) {
         futureTask.first.destroy();
         futureTask.second.destroy();
     }
     
+    let channel = utils.getChannelByName(message, config.lobbies[lobby].channel);
     futureTask = {};
-    futureTask.first = createCron(usersString, time, message, notifications[0]);
-    futureTask.second = createCron(usersString, time, message, notifications[1]);
+    futureTask.first = createCron(usersString, time, channel, notifications[0]);
+    futureTask.second = createCron(usersString, time, channel, notifications[1]);
 
     return futureTask;
 }
@@ -30,15 +34,23 @@ exports.parseTime = function(time) {
 exports.getLobbyDuration = function(time) {
     let timeParsed = this.parseTime(time);
     let futureTime = new Date();
-    futureTime.setHours(parseInt(futureTime.getHours() > timeParsed.hours ? futureTime.getHours() : timeParsed.hours) + 2);
 
-    if(timeParsed.minutes != undefined)
+    if(futureTime.getHours() > timeParsed.hours) {
+        futureTime.setHours(parseInt(24) + parseInt(timeParsed.hours));
+    }
+    else {
+        futureTime.setHours(timeParsed.hours);
+    }
+
+    if(timeParsed.minutes != undefined) {
         futureTime.setMinutes(timeParsed.minutes);
+    }
     return futureTime.getTime() - new Date().getTime();
 }
 
-exports.setLobbyTimeZone = async function (message, Discord, lobby){
+exports.setLobbyTimeZone = async function (message, Discord, lobby, modeuleCreateLobby){
 
+    createLobby = modeuleCreateLobby;
     const channel = message.channel;
     const title = "Set a timezone.";
     const color = "#FFFFFF";
@@ -109,7 +121,132 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
+exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby, averageRank) {
+    deleteMessageInFuture(messagesArray, deleteMessageInHours);
+    if(futureTask != undefined) {
+        futureTask.first.destroy();
+        futureTask.second.destroy();
+        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
+        
+        let scoresTemplate = await generateScoresTemplate(lobby, users, await saveLobby(lobby, users, averageRank));
+        lobbyChannel.send(scoresTemplate);
+    }
+}
+
+exports.createPlayerIfNotExist = async function(user) {
+    let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    if(player == null) {
+        player = await PlayerSchema.create({
+            discordId: user.id,
+            discordUserName: user.username
+        });
+    }
+
+    return player;
+}
+
+exports.getPlayer = async function (user) {
+    return await getPlayerInfo(user);
+}
+
+exports.isRegistered = async function (reaction, user) {
+    let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    return player != null && player.playerName != undefined;
+}
+
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
+
+
+async function saveLobby(lobby, users, averageRank) {
+    
+    let numMatch = 0;
+    await MatchSchema.where({}).countDocuments(function(err, count) {
+        if(err) { console.log(err); return; }
+        numMatch = count;
+    });
+    
+    await MatchSchema.create({
+        uuid: utils.generateUUID(),
+        matchNumber: numMatch,
+        lobbyModality: lobby,
+        numPlayers: users.lenth,
+        players: await getPlayersInfo(users),
+        averageRank: averageRank
+    });
+ 
+    return numMatch;             
+}
+
+function deleteMessageInFuture(messagesArray, hours) {    
+    let date = new Date();
+    date.setHours(date.getHours() + hours);
+
+    cron.schedule(date.getMinutes() + " " + date.getHours() + " * * *", () => {
+        for(var i = 0; i < messagesArray.length; i++) {
+            messagesArray[i].delete();
+        }
+    }, {
+        scheduled: false,
+        timezone: config.localTimeZone.timeZone
+    }).start();
+}
+
+async function generateScoresTemplate(lobby, users, numMatch) {
+    const ceros = getScoresTemplateCeros(lobby) + "\n";
+    let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
+
+    // hacer switch en un futuro
+    if(lobby == "FFA") {
+        for(const user of users) {
+            let playerInfo = await getPlayerInfo(user);
+            let username = user.username.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
+            let flag = playerInfo == undefined ? " [VA] " : " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
+            if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:");console.log(user); }
+            template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
+        }
+    }
+
+    const scoresTemplateEmbed = new Discord.MessageEmbed()
+        .setColor("RANDOM")
+        .addField("Scores template", template + "\n[Open template on gb.hlorenzi.com](https://gb.hlorenzi.com/table?data=" + encodeURI(template).replaceAll("#", "%23") + ")", true);
+
+    return scoresTemplateEmbed;
+}
+
+function getEmbedPlayerAndTracks(users, tracks) {
+    let usersString = "";
+    users.forEach(element => usersString += "<@" + element + ">\n");   
+    const newEmbed = new Discord.MessageEmbed()
+        .setColor("RANDOM")
+        .addField("Players", usersString, true)
+        .addField("Tracks", tracks, true);
+    return newEmbed;
+}
+
+async function getPlayersInfo(users) {
+    let playersInfoArray = [];
+    for(const user of users) {
+        playersInfoArray.push(await getPlayerInfo(user));
+    }
+
+    return playersInfoArray;
+}
+
+async function getPlayerInfo(user) {
+    let playerInfo = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    playerInfo.discordUserName = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).trimEnd();
+        
+    return playerInfo;
+}
+
+function getScoresTemplateCeros(lobby) {
+    let ceros = "";
+    for(var i = 0; i < config.lobbies[lobby].numRaces; i++) {
+        ceros += "0|";
+    }
+
+    return ceros.slice(0, -1);
+}
 
 function isCorrectTime(time) {
 
@@ -243,7 +380,7 @@ function to24HH(localTimeZone) {
     return time;
 }
 
-function createCron(usersString, time, message, notification) {    
+function createCron(usersString, time, channel, notification) {    
     let timeNotification = {};
     timeNotification.minutes = time.minutes;
     timeNotification.hours = time.hours;
@@ -259,7 +396,7 @@ function createCron(usersString, time, message, notification) {
 
     return cron.schedule(timeNotification.minutes + " " + timeNotification.hours + " * * *", () => {
         if(usersString != "") {
-            message.channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
+            channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
         }
     }, {
         scheduled: false,

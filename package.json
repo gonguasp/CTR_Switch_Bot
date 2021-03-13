@@ -11,13 +11,17 @@
   "dependencies": {
     "discord.js": "^12.5.1",
     "module-alias": "^2.2.2",
+    "mongoose": "^5.11.18",
     "node-cron": "^2.0.3"
   },
   "_moduleAliases": {
     "@root": ".",
     "@cmdGeneral": "./commands",
     "@cmdLobbyCreation": "./commands/lobbyCreation",
+    "@cmdAdministration": "./commands/administration",
     "@config": "./config.json",
+    "@models": "./db/models",
+    "@flags": "./utils/flags.json",
     "@utils": "./utils"
   }
 }

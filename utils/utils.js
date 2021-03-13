@@ -1,8 +1,10 @@
 require("module-alias/register");
 
 const config = require('@config');
+const flags = require('@flags');
 const Discord = require("discord.js");
 const fs = require("fs");
+const MatchSchema = require('@models/MatchSchema.js');
 
 exports.readCommands = function(client) {
     
@@ -104,4 +106,19 @@ exports.getWelcomeMemes = function() {
     }
     
     return images;
+}
+
+exports.isCountryFlag = function(flagEmoji) {
+    return flags.flagName.hasOwnProperty(flagEmoji) && flags.flagCodeMap.hasOwnProperty(flagEmoji);
+}
+
+exports.getCountryNameByFlag = function(flagEmoji) {
+    return flags.flagName[flagEmoji];
+}
+
+exports.generateUUID = function () {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }

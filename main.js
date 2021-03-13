@@ -2,14 +2,30 @@ require("module-alias/register");
 
 const config = require('@config');
 const utils = require('@utils/utils.js');
+const rankUtils = require('@utils/rankUtils.js');
 const Discord = require("discord.js");
+const mongoose = require("mongoose");
 const client = new Discord.Client(/*{retryLimit: 10}*/);
+
+
+mongoose.connect(config.mongoDB, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    userFindAndModify: false,
+    useFindAndModify: false
+}).then(() => {
+    console.log("conxion con la base de datos exitosa");
+}).catch((err) => {
+    console.log(err);
+});
 
 client.commands = utils.readCommands(client);
 
 client.on("message", message => {
     let command;
     try {
+        rankUtils.processIfRankedResults(message);
+
         if(!message.content.startsWith(config.prefix) || message.author.bot)
             return;
 

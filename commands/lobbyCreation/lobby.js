@@ -25,10 +25,11 @@ module.exports = {
         
         let filter = m => m.author.id === message.author.id;
         let lobbies = "";
+        let lobbiesNames = Object.getOwnPropertyNames(config.lobbies);
 
-        for(let i = 0; i < config.lobbies.length; i++) {
-            lobbies += (i + 1) + " - " + config.lobbies[i];
-            if(i + 1 < config.lobbies.length) lobbies += "\n ";
+        for(let i = 0; i < lobbiesNames.length; i++) {
+            lobbies += (i + 1) + " - " + lobbiesNames[i];
+            if(i + 1 < lobbiesNames.length) lobbies += "\n ";
         }
 
         const newEmbed = new Discord.MessageEmbed()
@@ -45,13 +46,13 @@ module.exports = {
                 .then(message => {
                     message = message.first();
 
-                    if(config.lobbies[message.content - 1] != undefined) {
-                        message.channel.send(config.lobbies[message.content - 1] + " lobby selected");    
+                    if(lobbiesNames[message.content - 1] != undefined) {
+                        message.channel.send(lobbiesNames[message.content - 1] + " lobby selected");    
                         
                         if(args[0] != "custom")
-                            createLobby.execute(message, config.lobbies[message.content - 1], Discord, client, args);
+                            createLobby.execute(message, lobbiesNames[message.content - 1], Discord, client, args);
                         else 
-                        lobbyUtils.setLobbyTimeZone(message, Discord, config.lobbies[message.content - 1]);
+                        lobbyUtils.setLobbyTimeZone(message, Discord, lobbiesNames[message.content - 1], createLobby);
                     }
                     else
                         message.reply("terminated: Invalid Response");    
