@@ -2,6 +2,7 @@ require("module-alias/register");
 
 const PlayerSchema = require('@models/PlayerSchema.js');
 const config = require('@config');
+const rankUtils = require('@utils/rankUtils.js');
 
 module.exports = {
     name: "set_player_name",
@@ -13,39 +14,35 @@ module.exports = {
     public: true,
     async execute(message, args, Discord, client)  {
 
+        if(args[0] == undefined) {
+            message.reply("you have to add your player name as first argument of the command.\nExample !set_player_name <playerName>");
+            return;
+        } 
+
         if(args[0].length > config.maxCharacersPlayerName) {
-            message.channel.send("Max character for the name are 9");
+            message.reply("max characters for the name are 9");
             return;
         }
 
-        let duplicate = false;
-        let playerDuplicate = PlayerSchema.where({ playerName: args[0] });
-        playerDuplicate.findOne(async function (err, playerResponse) {
-            if(err) { console.log(err); return; }
-            if(playerResponse) {
-                message.channel.reply("the player " + playerResponse.discordUserName + " already has that player name and duplicates are not allowed.");
-                duplicate = true;
-            }
-        });
+        if(await PlayerSchema.findOne({ playerName: args[0] }).exec() != null) {
+            message.reply("the user " + args[0] + " already has that player name and duplicates are not allowed.");
+            return;
+        }
 
-        if(duplicate) { return; }
+        let update = {
+            discordId: message.author.id,
+            discordUserName: message.author.username.substring(config.maxCharacersPlayerName, 0).trimEnd(),
+            playerName: args[0]
+        };
+        let filter = { discordId: message.author.id };
+        let options = {
+            new: true,
+            upsert: true  
+        };
 
-        let player = PlayerSchema.where({ discordId: message.author.id });
-        player.findOne(async function (err, playerResponse) {
-            if(err) { console.log(err); return; }
-            if(playerResponse) {
-                player.updateOne({ $set: { playerName: args[0] }}).exec();
-            }
-            else {
-                player = await PlayerSchema.create({
-                    discordId: message.author.id,
-                    discordUserName: message.author.username,
-                    playerName: args[0]
-                });
+        await PlayerSchema.findOneAndUpdate(filter, update, options).exec();
+        await rankUtils.createPlayerRankIfNotExists(message.author);
         
-                player.save();
-            }
-            message.channel.send("updated to " + args[0] + "!");
-        });
+        message.channel.send("updated to " + args[0] + "!");        
     }
 }

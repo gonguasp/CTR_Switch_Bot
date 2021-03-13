@@ -7,40 +7,16 @@ const RankSchema = require('@models/RankSchema.js');
 const MatchSchema = require('@models/MatchSchema.js');
 
 
-exports.createPlayerRankIfNotExists = async function(player) {
-    let rankSchema = RankSchema.where({ playerDiscordId: player.id });
-    await rankSchema.findOne(async function (err, playerRankResponse) {
-        if(err) { console.log(err); return; }
-        if(!playerRankResponse) {
-            rankSchema = await RankSchema.create({
-                playerDiscordId: player.id
-            });
-    
-            await rankSchema.save();
-        }
-    });
-}
-
-
-exports.findPlayerRank = async function(player) {
+exports.findPlayerRank = async function(user) {
     let playerRank = {};
-    let playerRankSchema = RankSchema.where({ playerDiscordId: player.id });
-    await playerRankSchema.findOne(async function (err, playerRankResponse) {
-        if(err) { console.log(err); return; }
-        if(playerRankResponse) {
-            playerRank.rank = playerRankResponse;
-        }
-    });
-
-    let playerSchema = PlayerSchema.where({ discordId: player.id });
-    await playerSchema.findOne(async function (err, playerResponse) {
-        if(err) { console.log(err); return; }
-        if(playerResponse) {
-            playerRank.player = playerResponse;
-        }
-    });
+    playerRank.rank = await createPlayerRankIfNotExists(user);
+    playerRank.player = await PlayerSchema.findOne({ discordId: user.id }).exec();
 
     return playerRank;    
+}
+
+exports.createPlayerRankIfNotExists = async function(user) {
+    await createPlayerRankIfNotExists(user)
 }
 
 exports.getRankInfo = function(lobby, playerRank) {
@@ -56,8 +32,8 @@ exports.getRankInfo = function(lobby, playerRank) {
 exports.calculateAverageRank = function(playersRank) {
     let totalRank = 0;
     playersRank.forEach( element => totalRank += element.rank);
-    return Math.round(totalRank / playersRank.length);
 
+    return Math.round(totalRank / playersRank.length);
 }
 
 exports.processIfRankedResults = async function(message) {
@@ -65,11 +41,13 @@ exports.processIfRankedResults = async function(message) {
     if(message.channel != channel || message.author.bot) { return; }
     let info = await isValidResult(message.content);
     if(info.valid && info.rankedInfo.scores == undefined) {
-        let winnersLosers = getWinnersLosers(info.rankedInfo.players, message.content);
-        await calculateAndSaveRanks(winnersLosers, info.rankedInfo);
         message.reply("valido");
+        //players signed to the lobby info.rankedInfo.players
+        let winnersLosers = getWinnersLosers(await getPlayersFromContent(message.content), message.content);
+        let rankedResults = await calculateRanks(winnersLosers, info.rankedInfo);    
+        message.reply("\n" + pretyPrint(rankedResults));
     }
-    else if(info.rankedInfo.scores != undefined) {
+    else if(info.valid && (info != undefined || info.rankedInfo != undefined || info.rankedInfo.scores != undefined)) {
         message.reply("that match already has final scores");
     }
     else {
@@ -81,21 +59,61 @@ exports.processIfRankedResults = async function(message) {
 
 
 
-async function calculateAndSaveRanks(winnersLosers, rankedInfo) {
-    winnersLosers.forEach( await function (player) {
-        let playerRank = getPlayerRank(player.discordId);
-        let probabilityWins = 1 / (1 + Math.pow(10, ((rankedInfo.averageRank - playerRank[rankedInfo.lobbyModality]) / 400)));
-        let rating = playerRank[rankedInfo.lobbyModality] + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
+async function createPlayerRankIfNotExists(user) {
+    let created = await RankSchema.findOne({ playerDiscordId: user.id }).exec();
+    if(created == null) {
+        created = await RankSchema.create({
+            playerDiscordId: user.id,
+            discordUserName: user.username
+        });
+    }
+
+    return created;
+}
+
+async function getPlayersFromContent(content) {
+    let rows = content.split("\n");
+    let players = [];
+    for(let i = 0; i < rows.length; i++) {
+        if(!rows[i].includes("|")) { continue; }
+        let name = rows[i].split(" [")[0].trimEnd();
+        let player = await PlayerSchema.findOne({ playerName: name }).exec();
+        if(player == null)
+            player = await PlayerSchema.findOne({ discordUserName: name }).exec();
+        players.push(player);
+    }
+
+    return players;
+}
+
+function pretyPrint(rankedResults) {
+    let rankedResultsPrety = "";
+    rankedResults.forEach((rank) => {
+        rankedResultsPrety += rank.playerName + ":\n" + rank.previusRank + "  |  " + rank.rankChange + "  =>  " + rank.currentRank + "\n\n";
+    });
+
+    return rankedResultsPrety;
+}
+
+async function calculateRanks(winnersLosers, rankedInfo) {
+    let rankedResults = [];
+
+    for(let player of winnersLosers) {
+        
+        let playerRank = await getPlayerRank(player.info.discordId);
+        let probabilityWins = 1 / (1 + Math.pow(10, ((rankedInfo.averageRank - playerRank[rankedInfo.lobbyModality.toLowerCase()]) / 400)));
+        let rating = playerRank[rankedInfo.lobbyModality.toLowerCase()] + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
         let playerRanked = {
             playerName: player.info.playerName ? player.info.playerName : player.info.discordUserName,
-            previusRank: playerRank[rankedInfo.lobbyModality],
+            previusRank: playerRank[rankedInfo.lobbyModality.toLowerCase()],
             rankChange: Math.round(config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2)) * 100) / 100,
             currentRank: rating
         };
-        console.log(playerRanked);
-        /*console.log(rating);
-        console.log(config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2)));*/
-    });
+
+        rankedResults.push(playerRanked);
+    }
+
+    return rankedResults;
 }
 
 function getPlayersShortedByPoints(players, scoreTable) {
@@ -103,8 +121,8 @@ function getPlayersShortedByPoints(players, scoreTable) {
     let playersWithPoints = [];
     for(let i = 0; i < rows.length; i++) {
         if(!rows[i].includes("|")) { continue; }
-        let player = {};
-        player.info = players.filter(item => (item.playerName ? item.playerName : item.discordUserName) == rows[i].split(" ")[0])[0];
+        let player = {};  
+        player.info = players.filter(item => (item.playerName ? item.playerName : item.discordUserName) == rows[i].split(" [")[0].trimEnd())[0];
         player.points = rows[i].split("] ")[1].split("|").reduce((num1, num2) => parseInt(num1) + parseInt(num2));
         playersWithPoints.push(player);
     }
@@ -128,18 +146,17 @@ async function isValidResult(content) {
     result.valid = true;
     result.rankedInfo = rankedInfo;
     if(rankedInfo) {
-        for(const player of rankedInfo.players) {
+        /*for(const player of rankedInfo.players) {
             let playerName = player.playerName != undefined ? player.playerName : player.discordUserName;
             if(content.search(playerName) == -1) {
                 result.valid = false;
                 break;
             }
-        }
+        }*/
 
         if(result.valid) {
-            let numPipes = (config.lobbies[rankedInfo.lobbyModality].numRaces - 1) * rankedInfo.players.length;
             let countPipes = content.split("|").length - 1;
-            result.valid = numPipes == countPipes;
+            result.valid = countPipes % (config.lobbies[rankedInfo.lobbyModality].numRaces - 1) == 0;
         }
     }
     else { result.valid = false; }
@@ -153,29 +170,12 @@ async function getRankedInfo(content) {
     if(content.search(/#\d+#/) != -1) {
         content = content.replace(content.substring(0, content.indexOf("#")), "").replace("#", "");
         let numRanked = content.substring(0, content.indexOf("#"));
-        let match = MatchSchema.where({ matchNumber: numRanked });
-        await match.findOne(async function (err, matchResponse) {
-            if(err) { console.log(err); return; }
-            if(matchResponse) {
-                rankedInfo = matchResponse;
-            }
-        });
+        rankedInfo = await MatchSchema.findOne({ matchNumber: numRanked }).exec();
     }
 
     return rankedInfo;
 }
 
 async function getPlayerRank(id) {
-    let playerRank = undefined;
-
-    let rank = RankSchema.where({ playerDiscordId: id });
-    await rank.findOne(async function (err, rankResponse) {
-        if(err) { console.log(err); return; }
-        if(rankResponse) {
-            playerRank = rankResponse;
-        }
-    });
-    
-
-    return playerRank;
+    return await RankSchema.findOne({ playerDiscordId: id }).exec();
 }

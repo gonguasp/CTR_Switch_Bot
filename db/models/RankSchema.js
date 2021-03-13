@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const rankSchema = new mongoose.Schema({
   playerDiscordId: { type: String, require: true, unique: true },
+  discordUserName: { type: String, require: true },
   ffa: { type: Number, require: false, default: 1200 },
   ffaPlayed: { type: Number, require: false, default: 0 },
   ffaWon: { type: Number, require: false, default: 0 },

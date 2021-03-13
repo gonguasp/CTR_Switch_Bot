@@ -134,23 +134,24 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
 }
 
 exports.createPlayerIfNotExist = async function(user) {
-    let player;
-    let playerSchema = PlayerSchema.where({ discordId: user.id });
-    await playerSchema.findOne(async function (err, playerResponse) {
-        if(err) { console.log(err); return; }
-        if(!playerResponse) {
-            await PlayerSchema.create({
-                discordId: user.id,
-                discordUserName: user.username
-            });
-        }
-        else { player = playerResponse; }
-    });
+    let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    if(player == null) {
+        player = await PlayerSchema.create({
+            discordId: user.id,
+            discordUserName: user.username
+        });
+    }
+
     return player;
 }
 
 exports.getPlayer = async function (user) {
     return await getPlayerInfo(user);
+}
+
+exports.isRegistered = async function (reaction, user) {
+    let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    return player != null && player.playerName != undefined;
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
@@ -163,7 +164,8 @@ async function saveLobby(lobby, users, averageRank) {
         if(err) { console.log(err); return; }
         numMatch = count;
     });
-    let match = await MatchSchema.create({
+    
+    await MatchSchema.create({
         uuid: utils.generateUUID(),
         matchNumber: numMatch,
         lobbyModality: lobby,
@@ -171,8 +173,7 @@ async function saveLobby(lobby, users, averageRank) {
         players: await getPlayersInfo(users),
         averageRank: averageRank
     });
-
-    match.save(); 
+ 
     return numMatch;             
 }
 
@@ -232,14 +233,9 @@ async function getPlayersInfo(users) {
 }
 
 async function getPlayerInfo(user) {
-    let playerInfo;
-    let player = PlayerSchema.where({ discordId: user.id });
-    await player.findOne(async function (err, playerResponse) {
-        if(err) { console.log(err); return; }
-        if(playerResponse) {
-            playerInfo = playerResponse;
-        }
-    });
+    let playerInfo = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    playerInfo.discordUserName = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).trimEnd();
+        
     return playerInfo;
 }
 

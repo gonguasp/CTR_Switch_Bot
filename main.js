@@ -11,7 +11,8 @@ const client = new Discord.Client(/*{retryLimit: 10}*/);
 mongoose.connect(config.mongoDB, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    userFindAndModify: false
+    userFindAndModify: false,
+    useFindAndModify: false
 }).then(() => {
     console.log("conxion con la base de datos exitosa");
 }).catch((err) => {
