@@ -7,7 +7,8 @@
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
 	"maxCharacersPlayerName": "9",
-	"ELOrankConstK": "30",
+	"rankedSanction": "-10",
+	"ELOrankConstK": "60",
 	"defaultFlag": "🇻🇦",
 	"lobbies": {
 		"FFA": { "value": "FFA", "rankName":"ffa", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": false }, 

@@ -41,23 +41,76 @@ exports.processIfRankedResults = async function(message) {
     if(message.channel != channel || message.author.bot) { return; }
     let info = await isValidResult(message.content);
     if(info.valid && info.rankedInfo.scores == undefined) {
-        message.reply("valido");
-        //players signed to the lobby info.rankedInfo.players
-        let winnersLosers = getWinnersLosers(await getPlayersFromContent(message.content), message.content);
+        let modality = info.rankedInfo.lobbyModality.toLowerCase();
+        let contentPlayers = await getPlayersFromContent(message.content);
+        let winnersLosers = getWinnersLosers(contentPlayers, message.content);
         let rankedResults = await calculateRanks(winnersLosers, info.rankedInfo);    
-        message.reply("\n" + pretyPrint(rankedResults));
+        let sanctions = await getSanctionedPlayers(contentPlayers, info.rankedInfo.players, modality);
+        rankedResults = rankedResults.concat(sanctions);
+        message.channel.send("\n" + pretyPrint(rankedResults));
+        await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
     }
     else if(info.valid && (info != undefined || info.rankedInfo != undefined || info.rankedInfo.scores != undefined)) {
-        message.reply("that match already has final scores");
+        message.reply("that match already has final scores").then(msg => {
+            msg.delete({ timeout: 5000 })
+          }).catch(console.error);
     }
     else {
-        message.reply("not a valid format!");
+        message.reply("not a valid format!").then(msg => {
+            msg.delete({ timeout: 5000 })
+          }).catch(console.error);
     }
+    message.delete();
 }
 
 /////////////////////////////////////// PRIVATE FUNCTIONS
 
 
+async function saveRankedResults(results, modality, scoresTable, matchNumber) {
+    for(let result of results) {
+        let current = await getPlayerRank(result.discordId);
+        let update = {};
+        update[modality] = parseInt(result.currentRank);
+        update[modality + "Played"] = parseInt(current[modality + "Played"]) + parseInt(1);
+        update[modality + "Won"] = parseInt(current[modality + "Won"]) + parseInt(result.rankdChange > 0 ? 1 : 0);
+        let filter = { playerDiscordId: result.discordId };
+        let options = {
+            new: true,
+            upsert: true  
+        };
+    
+        await RankSchema.findOneAndUpdate(filter, update, options).exec();
+
+        filter = { matchNumber: matchNumber };
+        update = {};
+        update.scores = scoresTable;
+        await MatchSchema.findOneAndUpdate(filter, update, options).exec();
+    };
+    
+}
+
+async function getSanctionedPlayers(contentPlayers, lobbyPlayers, modality) {
+    let ids = contentPlayers.map(a => a.discordId);
+    let playersToSaction = lobbyPlayers.filter(player => !ids.includes(player.discordId));
+    let sanctionedPlayers = [];
+
+    for(let player of playersToSaction) {
+        let playerRank = await getPlayerRank(player.discordId);
+        let currentRating = parseInt(playerRank[modality]) + parseInt(config.rankedSanction);
+        let playerRanked = {
+            discordId: player.discordId,
+            playerName: (player.playerName ? player.playerName : player.discordUserName),
+            previusRank: playerRank[modality],
+            rankChange: config.rankedSanction,
+            currentRank: currentRating,
+            status: "sanctioned"
+        };
+
+        sanctionedPlayers.push(playerRanked);
+    }
+
+    return sanctionedPlayers;
+}
 
 async function createPlayerRankIfNotExists(user) {
     let created = await RankSchema.findOne({ playerDiscordId: user.id }).exec();
@@ -89,7 +142,7 @@ async function getPlayersFromContent(content) {
 function pretyPrint(rankedResults) {
     let rankedResultsPrety = "";
     rankedResults.forEach((rank) => {
-        rankedResultsPrety += rank.playerName + ":\n" + rank.previusRank + "  |  " + rank.rankChange + "  =>  " + rank.currentRank + "\n\n";
+        rankedResultsPrety += "<@" + rank.discordId + "> " + (rank.status != undefined ? rank.status : "") + ": " + rank.previusRank + "  |  " + rank.rankChange + "  =>  " + rank.currentRank + "\n";
     });
 
     return rankedResultsPrety;
@@ -97,23 +150,35 @@ function pretyPrint(rankedResults) {
 
 async function calculateRanks(winnersLosers, rankedInfo) {
     let rankedResults = [];
+    let modality = rankedInfo.lobbyModality.toLowerCase();
+    let averageRank = await calculateAverageRank(winnersLosers, modality);
 
     for(let player of winnersLosers) {
         
         let playerRank = await getPlayerRank(player.info.discordId);
-        let probabilityWins = 1 / (1 + Math.pow(10, ((rankedInfo.averageRank - playerRank[rankedInfo.lobbyModality.toLowerCase()]) / 400)));
-        let rating = playerRank[rankedInfo.lobbyModality.toLowerCase()] + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
+        let probabilityWins = 1 / (1 + Math.pow(10, ((averageRank - playerRank[modality]) / 400)));
+        let rating = playerRank[modality] + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
         let playerRanked = {
+            discordId: player.info.discordId,
             playerName: player.info.playerName ? player.info.playerName : player.info.discordUserName,
-            previusRank: playerRank[rankedInfo.lobbyModality.toLowerCase()],
-            rankChange: Math.round(config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2)) * 100) / 100,
-            currentRank: rating
+            previusRank: playerRank[modality],
+            rankChange: parseInt(config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2))),
+            currentRank: parseInt(rating)
         };
 
         rankedResults.push(playerRanked);
     }
 
     return rankedResults;
+}
+
+async function calculateAverageRank(players, modality) {
+    let averageRank = 0;
+    for(let player of players) {
+        averageRank += (await getPlayerRank(player.info.discordId))[modality];
+    }
+
+    return averageRank / players.length;
 }
 
 function getPlayersShortedByPoints(players, scoreTable) {
