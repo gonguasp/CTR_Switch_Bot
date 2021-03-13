@@ -72,12 +72,14 @@ async function saveRankedResults(results, modality, scoresTable, matchNumber) {
         let update = {};
         update[modality] = parseInt(result.currentRank);
         update[modality + "Played"] = parseInt(current[modality + "Played"]) + parseInt(1);
-        update[modality + "Won"] = parseInt(current[modality + "Won"]) + parseInt(result.rankdChange > 0 ? 1 : 0);
+        update[modality + "Won"] = parseInt(current[modality + "Won"]) + parseInt(result.rankChange > 0 ? 1 : 0);
         let filter = { playerDiscordId: result.discordId };
         let options = {
             new: true,
             upsert: true  
         };
+
+        console.log(result.rankChange);
     
         await RankSchema.findOneAndUpdate(filter, update, options).exec();
 
