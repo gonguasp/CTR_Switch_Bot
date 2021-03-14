@@ -37,6 +37,7 @@ exports.calculateAverageRank = function(playersRank) {
 }
 
 exports.processIfRankedResults = async function(message) {
+    
     const channel = message.guild.channels.cache.find(ch => ch.name == config.resultsRankedChannel);
     if(message.channel != channel || message.author.bot) { return; }
     let info = await isValidResult(message.content);
@@ -53,14 +54,15 @@ exports.processIfRankedResults = async function(message) {
     else if(info.valid && (info != undefined || info.rankedInfo != undefined || info.rankedInfo.scores != undefined)) {
         message.reply("that match already has final scores").then(msg => {
             msg.delete({ timeout: 5000 })
-          }).catch(console.error);
+        }).catch(console.error);
     }
     else {
         message.reply("not a valid format!").then(msg => {
             msg.delete({ timeout: 5000 })
-          }).catch(console.error);
+        }).catch(console.error);
     }
     message.delete();
+
 }
 
 /////////////////////////////////////// PRIVATE FUNCTIONS

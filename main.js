@@ -24,7 +24,9 @@ client.commands = utils.readCommands(client);
 client.on("message", message => {
     let command;
     try {
-        rankUtils.processIfRankedResults(message);
+        if(message.guild != null) {
+            rankUtils.processIfRankedResults(message);
+        }
 
         if(!message.content.startsWith(config.prefix) || message.author.bot)
             return;
