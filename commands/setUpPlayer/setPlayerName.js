@@ -24,8 +24,9 @@ module.exports = {
             return;
         }
 
-        if(await PlayerSchema.findOne({ playerName: args[0] }).exec() != null) {
-            message.reply("the user " + args[0] + " already has that player name and duplicates are not allowed.");
+        let player = await PlayerSchema.findOne({ playerName: args[0] }).exec();
+        if(player != null && player.discordId != message.author.id) {
+            message.reply("the user " + player.discordUserName + " already has that player name and duplicates are not allowed.");
             return;
         }
 
@@ -41,7 +42,7 @@ module.exports = {
         };
 
         await PlayerSchema.findOneAndUpdate(filter, update, options).exec();
-        await rankUtils.createPlayerRankIfNotExists(message.author);
+        await rankUtils.createPlayerRankIfNotExists(message.author, args[0]);
         
         message.channel.send("updated to " + args[0] + "!");        
     }

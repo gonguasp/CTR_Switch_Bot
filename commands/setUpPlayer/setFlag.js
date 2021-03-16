@@ -48,7 +48,5 @@ module.exports = {
                 message.reply("Operation canceled: Timeout");
             }); 
         }
-
-        await rankUtils.createPlayerRankIfNotExists(message.author);       
     }
 }

@@ -15,8 +15,8 @@ exports.findPlayerRank = async function(user) {
     return playerRank;    
 }
 
-exports.createPlayerRankIfNotExists = async function(user) {
-    await createPlayerRankIfNotExists(user)
+exports.createPlayerRankIfNotExists = async function(user, playerName) {
+    await createPlayerRankIfNotExists(user, playerName)
 }
 
 exports.getRankInfo = function(lobby, playerRank) {
@@ -75,7 +75,7 @@ async function saveRankedResults(results, modality, scoresTable, matchNumber) {
         update[modality] = parseInt(result.currentRank);
         update[modality + "Played"] = parseInt(current[modality + "Played"]) + parseInt(1);
         update[modality + "Won"] = parseInt(current[modality + "Won"]) + parseInt(result.rankChange > 0 ? 1 : 0);
-        let filter = { playerDiscordId: result.discordId };
+        let filter = { discordId: result.discordId };
         let options = {
             new: true,
             upsert: true  
@@ -116,16 +116,30 @@ async function getSanctionedPlayers(contentPlayers, lobbyPlayers, modality) {
     return sanctionedPlayers;
 }
 
-async function createPlayerRankIfNotExists(user) {
-    let created = await RankSchema.findOne({ playerDiscordId: user.id }).exec();
-    if(created == null) {
-        created = await RankSchema.create({
-            playerDiscordId: user.id,
-            discordUserName: user.username
+async function createPlayerRankIfNotExists(user, playerName) {
+    let filter = { discordId: user.id };
+    let update = {
+        discordId: user.id,
+        playerName: ((playerName != undefined || playerName != null) ? playerName : user.discordUserName)
+    };
+    
+    let rankPlayer = await RankSchema.findOne(filter).exec();
+    if(rankPlayer == null) {
+        rankPlayer = await RankSchema.create({
+            discordId: update.discordId,
+            playerName: update.playerName
         });
     }
+    else {
+        let options = {
+            new: true,
+            upsert: true  
+        };
 
-    return created;
+        rankPlayer = await RankSchema.findOneAndUpdate(filter, update, options).exec();
+    }
+
+    return rankPlayer;
 }
 
 async function getPlayersFromContent(content) {
@@ -246,5 +260,5 @@ async function getRankedInfo(content) {
 }
 
 async function getPlayerRank(id) {
-    return await RankSchema.findOne({ playerDiscordId: id }).exec();
+    return await RankSchema.findOne({ discordId: id }).exec();
 }

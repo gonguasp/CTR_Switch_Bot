@@ -49,7 +49,6 @@ module.exports = {
 
         collector.on('collect', async (reaction, user) => {
             let playerRankString = "";
-            let player;
             try {
                 if(await lobbyUtils.isRegistered(reaction, user)) {
                     let playerRank = await rankUtils.findPlayerRank(user);
@@ -65,7 +64,7 @@ module.exports = {
                         .setColor(color)
                         .setTitle(title)
                         .addField("\nPlayers", usersString, true)
-                        .addField("\nIDs & Ranks", playerRankString, true)
+                        .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
                         .addField("\nAverage rank", averageRank, true)
                         .addField("Time", time, true);
 
