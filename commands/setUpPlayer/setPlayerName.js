@@ -42,7 +42,7 @@ module.exports = {
         };
 
         await PlayerSchema.findOneAndUpdate(filter, update, options).exec();
-        await rankUtils.createPlayerRankIfNotExists(message.author, args[0]);
+        await rankUtils.createOrEditPlayerRank(message.author, args[0]);
         
         message.channel.send("updated to " + args[0] + "!");        
     }

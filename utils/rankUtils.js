@@ -9,14 +9,35 @@ const MatchSchema = require('@models/MatchSchema.js');
 
 exports.findPlayerRank = async function(user) {
     let playerRank = {};
-    playerRank.rank = await createPlayerRankIfNotExists(user);
+    playerRank.rank = await RankSchema.findOne({ discordId: user.id }).exec();
     playerRank.player = await PlayerSchema.findOne({ discordId: user.id }).exec();
 
     return playerRank;    
 }
 
-exports.createPlayerRankIfNotExists = async function(user, playerName) {
-    await createPlayerRankIfNotExists(user, playerName)
+exports.createOrEditPlayerRank = async function(user, playerName) {
+    let filter = { discordId: user.id };
+    let update = {
+        discordId: user.id,
+        playerName: ((playerName != undefined || playerName != null) ? playerName : user.discordUserName)
+    };
+    let rankPlayer = await RankSchema.findOne(filter).exec();
+
+    if(rankPlayer == null) {
+        rankPlayer = await RankSchema.create({
+            discordId: update.discordId,
+            playerName: update.playerName
+        });
+    }
+    else {
+        let options = {
+            new: true,
+            upsert: true  
+        };
+        rankPlayer = await RankSchema.findOneAndUpdate(filter, update, options).exec();
+    }
+
+    return rankPlayer;
 }
 
 exports.getRankInfo = function(lobby, playerRank) {
@@ -114,32 +135,6 @@ async function getSanctionedPlayers(contentPlayers, lobbyPlayers, modality) {
     }
 
     return sanctionedPlayers;
-}
-
-async function createPlayerRankIfNotExists(user, playerName) {
-    let filter = { discordId: user.id };
-    let update = {
-        discordId: user.id,
-        playerName: ((playerName != undefined || playerName != null) ? playerName : user.discordUserName)
-    };
-    
-    let rankPlayer = await RankSchema.findOne(filter).exec();
-    if(rankPlayer == null) {
-        rankPlayer = await RankSchema.create({
-            discordId: update.discordId,
-            playerName: update.playerName
-        });
-    }
-    else {
-        let options = {
-            new: true,
-            upsert: true  
-        };
-
-        rankPlayer = await RankSchema.findOneAndUpdate(filter, update, options).exec();
-    }
-
-    return rankPlayer;
 }
 
 async function getPlayersFromContent(content) {
