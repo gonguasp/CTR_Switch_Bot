@@ -121,14 +121,14 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby, averageRank) {
+exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby, averageRank, numMatch) {
     deleteMessageInFuture(messagesArray, deleteMessageInHours);
     if(futureTask != undefined) {
         futureTask.first.destroy();
         futureTask.second.destroy();
         lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
         
-        let scoresTemplate = await generateScoresTemplate(lobby, users, await saveLobby(lobby, users, averageRank));
+        let scoresTemplate = await generateScoresTemplate(lobby, users, await this.saveLobby(lobby, users, averageRank, numMatch));
         lobbyChannel.send(scoresTemplate);
     }
 }
@@ -149,33 +149,41 @@ exports.getPlayer = async function (user) {
     return await getPlayerInfo(user);
 }
 
-exports.isRegistered = async function (reaction, user) {
+exports.isRegistered = async function (user) {
     let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
     return player != null && player.playerName != undefined;
+}
+
+exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
+    
+    if(numMatch == 0) {
+        await MatchSchema.where({}).countDocuments(function(err, count) {
+            if(err) { console.log(err); return; }
+            numMatch = count;
+        });
+    }
+
+    let update = {
+        uuid: utils.generateUUID(),
+        matchNumber: numMatch,
+        lobbyModality: lobby,
+        players: await getPlayersInfo(users),
+        averageRank: averageRank
+    };
+    let filter = { matchNumber: numMatch };
+    let options = {
+        new: true,
+        upsert: true  
+    };
+
+    await MatchSchema.findOneAndUpdate(filter, update, options).exec();        
+ 
+    return numMatch;             
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
 
 
-async function saveLobby(lobby, users, averageRank) {
-    
-    let numMatch = 0;
-    await MatchSchema.where({}).countDocuments(function(err, count) {
-        if(err) { console.log(err); return; }
-        numMatch = count;
-    });
-    
-    await MatchSchema.create({
-        uuid: utils.generateUUID(),
-        matchNumber: numMatch,
-        lobbyModality: lobby,
-        numPlayers: users.lenth,
-        players: await getPlayersInfo(users),
-        averageRank: averageRank
-    });
- 
-    return numMatch;             
-}
 
 function deleteMessageInFuture(messagesArray, hours) {    
     let date = new Date();
@@ -201,7 +209,7 @@ async function generateScoresTemplate(lobby, users, numMatch) {
             let playerInfo = await getPlayerInfo(user);
             let username = user.username.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
             let flag = playerInfo == undefined ? " [VA] " : " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
-            if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:");console.log(user); }
+            if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:"); console.log(user); }
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
         }
     }

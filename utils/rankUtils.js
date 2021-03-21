@@ -58,19 +58,20 @@ exports.calculateAverageRank = function(playersRank) {
 }
 
 exports.processIfRankedResults = async function(message) {
-    
     const channel = message.guild.channels.cache.find(ch => ch.name == config.resultsRankedChannel);
     if(message.channel != channel || message.author.bot) { return; }
     let info = await isValidResult(message.content);
     if(info.valid && info.rankedInfo.scores == undefined) {
         let modality = info.rankedInfo.lobbyModality.toLowerCase();
         let contentPlayers = await getPlayersFromContent(message.content);
-        let winnersLosers = getWinnersLosers(contentPlayers, message.content);
-        let rankedResults = await calculateRanks(winnersLosers, info.rankedInfo);    
-        let sanctions = await getSanctionedPlayers(contentPlayers, info.rankedInfo.players, modality);
-        rankedResults = rankedResults.concat(sanctions);
-        message.channel.send("\n" + pretyPrint(rankedResults));
-        await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
+        if(allPlayersExist(message, contentPlayers)) {
+            let winnersLosers = getWinnersLosers(contentPlayers, message.content);
+            let rankedResults = await calculateRanks(winnersLosers, info.rankedInfo);    
+            let sanctions = await getSanctionedPlayers(contentPlayers, info.rankedInfo.players, modality);
+            rankedResults = rankedResults.concat(sanctions);
+            message.channel.send("\nMatch #" + info.rankedInfo.matchNumber + "\n\n```" + pretyPrint(rankedResults) + "```");
+            await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
+        }
     }
     else if(info.valid && (info != undefined || info.rankedInfo != undefined || info.rankedInfo.scores != undefined)) {
         message.reply("that match already has final scores").then(msg => {
@@ -89,6 +90,19 @@ exports.processIfRankedResults = async function(message) {
 /////////////////////////////////////// PRIVATE FUNCTIONS
 
 
+function allPlayersExist(message, contentPlayers) {
+    let allPlayersExist = true;
+    for(let player of contentPlayers) {
+        if(typeof player === "string") {
+            message.reply(player + "\nThat player should use !set_player_name <name> and resend the scores table").then(msg => {
+                msg.delete({ timeout: 10000 })
+            }).catch(console.error);
+            allPlayersExist = false;
+        }
+    }
+    return allPlayersExist;
+}
+
 async function saveRankedResults(results, modality, scoresTable, matchNumber) {
     for(let result of results) {
         let current = await getPlayerRank(result.discordId);
@@ -101,8 +115,6 @@ async function saveRankedResults(results, modality, scoresTable, matchNumber) {
             new: true,
             upsert: true  
         };
-
-        console.log(result.rankChange);
     
         await RankSchema.findOneAndUpdate(filter, update, options).exec();
 
@@ -144,8 +156,12 @@ async function getPlayersFromContent(content) {
         if(!rows[i].includes("|")) { continue; }
         let name = rows[i].split(" [")[0].trimEnd();
         let player = await PlayerSchema.findOne({ playerName: name }).exec();
-        if(player == null)
+        if(player == null) {
             player = await PlayerSchema.findOne({ discordUserName: name }).exec();
+        }
+        if(player == null) {
+            player = "ERROR! Player " + name + " not found.";
+        }
         players.push(player);
     }
 
@@ -155,7 +171,7 @@ async function getPlayersFromContent(content) {
 function pretyPrint(rankedResults) {
     let rankedResultsPrety = "";
     rankedResults.forEach((rank) => {
-        rankedResultsPrety += "<@" + rank.discordId + "> " + (rank.status != undefined ? rank.status : "") + ": " + rank.previusRank + "  |  " + rank.rankChange + "  =>  " + rank.currentRank + "\n";
+        rankedResultsPrety += rank.playerName.padEnd(config.maxCharacersPlayerName) + " " + (rank.status != undefined ? rank.status : "") + ": " + rank.previusRank + "  | " + (rank.rankChange > 0 ? " " + rank.rankChange : rank.rankChange) + "  =>  " + rank.currentRank + "\n";
     });
 
     return rankedResultsPrety;
@@ -167,7 +183,6 @@ async function calculateRanks(winnersLosers, rankedInfo) {
     let averageRank = await calculateAverageRank(winnersLosers, modality);
 
     for(let player of winnersLosers) {
-        
         let playerRank = await getPlayerRank(player.info.discordId);
         let probabilityWins = 1 / (1 + Math.pow(10, ((averageRank - playerRank[modality]) / 400)));
         let rating = playerRank[modality] + config.ELOrankConstK * (parseInt(player.wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2));
@@ -224,17 +239,10 @@ async function isValidResult(content) {
     result.valid = true;
     result.rankedInfo = rankedInfo;
     if(rankedInfo) {
-        /*for(const player of rankedInfo.players) {
-            let playerName = player.playerName != undefined ? player.playerName : player.discordUserName;
-            if(content.search(playerName) == -1) {
-                result.valid = false;
-                break;
-            }
-        }*/
-
         if(result.valid) {
             let countPipes = content.split("|").length - 1;
-            result.valid = countPipes % (config.lobbies[rankedInfo.lobbyModality].numRaces - 1) == 0;
+            result.valid = countPipes % (config.lobbies[rankedInfo.lobbyModality].numRaces - 1) == 0
+                && countPipes > ((config.lobbies[rankedInfo.lobbyModality].numRaces - 1) * parseInt(config.lobbies[rankedInfo.lobbyModality].minsPlayers));
         }
     }
     else { result.valid = false; }

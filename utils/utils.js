@@ -41,8 +41,7 @@ exports.executeCommand = function(message, args, Discord, client, command) {
     command.execute(message, args, Discord, client);
 }
 
-exports.areAllUsed = function(array) {
-    
+exports.areAllUsed = function(array) { 
     let used = 0;
 
 	for(var i = 0; i < array.length; i++)
@@ -53,7 +52,6 @@ exports.areAllUsed = function(array) {
 }
 
 exports.areAllSacredOrBlueUsed = function(tracks, numRaces) {
-
     let totalSacred = 18;
     let totalBlue = 19;
 
