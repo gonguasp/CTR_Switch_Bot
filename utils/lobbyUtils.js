@@ -254,7 +254,7 @@ exports.validTeam = async function (user, lobbyChannel, reaction, lobby, lobbyNu
         await reaction.users.remove(user.id);
         result.valid = false;
     }
-    if(team.modality != lobby) {
+    else if(team.modality != lobby) {
         lobbyChannel.send("<@" + user.id + ">, your are trying to sign up a lobby modality of " + lobby + " with a team of " + team.modality + ". Not allowed.");
     }
     else if(team.lobbyMatch == lobbyNumber) {
