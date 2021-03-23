@@ -13,8 +13,9 @@ module.exports = {
     public: true,
     async execute(message, args, Discord, client)  {
         if(!(await teamUtils.checkTeamMembersFree( [ message.author.id ] )).free) {
-            await teamUtils.deleteTeam(message);
-            message.reply("you are not longer part of any team in this moment.");
+            if(await teamUtils.deleteTeam(message)) {
+                message.reply("you are not longer part of any team in this moment.");
+            }
         }
         else {
             message.reply("you are not part of any team in this moment.");

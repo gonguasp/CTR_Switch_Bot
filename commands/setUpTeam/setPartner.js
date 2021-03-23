@@ -27,10 +27,10 @@ module.exports = {
             .addField("Team creation", args.join(", ") + " react with " + config.emojis.confirm + " to set your team with <@" + message.author.id + ">", true);
 
         let messageEmbed = await message.channel.send(embed);
-        messageEmbed.react(config.emojis.confirm);
+        await messageEmbed.react(config.emojis.confirm);
         
         const filter = (reaction, user) => {
-            return reaction.emoji.name === config.emojis.confirm && !user.bot && args.includes("<@" + user.id + ">");
+            return reaction.emoji.name === config.emojis.confirm && !user.bot && (args.includes("<@" + user.id + ">") || args.includes("<@!" + user.id + ">"));
         };
 
         await messageEmbed.awaitReactions(filter, { 

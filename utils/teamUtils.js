@@ -46,13 +46,15 @@ exports.deleteTeam = async function(message) {
 
     if(inRanked) {
         message.reply("first unsubscribe of the ranked you are in");
-        return;
+        return false;
     }
 
     await TeamSchema.findOneAndDelete({ 
         discordPartnersIds: message.author.id,
         lobbyMatch: null
     }).exec();
+
+    return true;
 }
 
 exports.getTeamMembers = async function(memberId) {

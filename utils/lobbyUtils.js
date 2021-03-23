@@ -3,6 +3,8 @@ require("module-alias/register");
 let createLobby;
 const config = require('@config');
 const utils = require('@utils/utils.js');
+const rankUtils = require('@utils/rankUtils.js');
+const teamUtils = require('@utils/teamUtils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
 const PlayerSchema = require('@models/PlayerSchema.js');
@@ -179,6 +181,127 @@ exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
     await MatchSchema.findOneAndUpdate(filter, update, options).exec();        
  
     return numMatch;             
+}
+
+exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed) {
+    let playerRankString = "";
+    let usersString = "";
+    usersAndFlags.forEach(element => usersString += element);
+    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
+    let averageRank = rankUtils.calculateAverageRank(playersRank);
+
+    const newEmbed = new Discord.MessageEmbed()
+        .setColor(color)
+        .setTitle(title);
+        
+
+    if(usersString != "") {
+        newEmbed.addField("\nPlayers", usersString, true)
+                .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
+                .addField("\nAverage rank", averageRank, true);
+    }
+
+    newEmbed.addField("Time", time, true);
+
+    if(usersAndFlags.size >= minPlayersPerLobby) {
+        if(tracks != "") {
+            newEmbed.addField("Tracks", tracks, true);
+        }        
+        futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
+        futureTask.first.start();
+        futureTask.second.start();
+    }
+    else if(futureTask != undefined) {
+        futureTask.first.destroy();
+        futureTask.second.destroy();
+    }
+
+    messageEmbed.edit(newEmbed);
+}
+
+exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message) {
+    if(await this.isRegistered(user)) {
+        let playerRank = await rankUtils.findPlayerRank(user);
+        playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
+        usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
+        if(!config.lobbies[lobby].team) {
+            await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message);
+        }
+    }
+    else {
+        await reaction.users.remove(user.id);
+        let answer;
+        if(!config.lobbies[lobby].team) {
+            answer = "before to sign up a lobby you must set your player name, use !set_player_name or !spn.\n\n" + 
+                     "Example:\n!set_player_name <your player name>\n!spn <your player name>";
+        }
+        else {
+            answer = "before to sign up the lobby the user <@" + user.id + "> must set the player name, use !set_player_name or !spn.\n\n" + 
+                     "Example:\n!set_player_name <your player name>\n!spn <your player name>";
+        }
+        lobbyChannel.send("<@" + user.id + ">, " + answer);
+    }
+
+    return { playersRank, usersAndFlags };
+}
+
+exports.validTeam = async function (user, lobbyChannel, reaction, lobby, lobbyNumber) {
+    let result = {};
+    result.valid = true;
+    let team = await teamUtils.getTeamMembers(user.id);
+    if(team == null) {
+        lobbyChannel.send("<@" + user.id + ">, before to sign up a " + lobby + " lobby you must set your team, use !set_partner @yourPartner.");
+        await reaction.users.remove(user.id);
+        result.valid = false;
+    }
+    if(team.modality != lobby) {
+        lobbyChannel.send("<@" + user.id + ">, your are trying to sign up a lobby modality of " + lobby + " with a team of " + team.modality + ". Not allowed.");
+    }
+    else if(team.lobbyMatch == lobbyNumber) {
+        team.discordPartnersIds.forEach(async (id) => {
+            await reaction.users.remove(id);
+        });
+        result.valid = false;
+    }
+
+    result.team = team;
+    return result;
+}
+
+exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message) {
+
+    let playerRankString = "";
+    let usersString = "";
+
+    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+    usersAndFlags.forEach(element => usersString += element); 
+    let averageRank = rankUtils.calculateAverageRank(playersRank);
+
+    const newEmbed = new Discord.MessageEmbed()
+        .setColor(color)
+        .setTitle(title)
+        .addField("\nPlayers", usersString, true)
+        .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
+        .addField("\nAverage rank", averageRank, true)
+        .addField("Time", time, true);
+
+    if(usersAndFlags.size <= maxPlayersPerLobby) {
+        lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
+        if(usersAndFlags.size >= minPlayersPerLobby) {
+            if(tracks == "") {
+                tracks = this.genTracks(numTracks);
+            }
+            newEmbed.addField("Tracks", tracks, true);
+            futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
+            futureTask.first.start();
+            futureTask.second.start();
+        }
+        messageEmbed.edit(newEmbed);
+    }
+    else if(usersAndFlags.size > maxPlayersPerLobby) {
+        await reaction.users.remove(user.id);
+        lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
+    }
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
