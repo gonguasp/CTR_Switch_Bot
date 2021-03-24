@@ -5,7 +5,7 @@ const utils = require('@utils/utils.js');
 const rankUtils = require('@utils/rankUtils.js');
 const Discord = require("discord.js");
 const mongoose = require("mongoose");
-const client = new Discord.Client(/*{retryLimit: 10}*/);
+const client = new Discord.Client({ retryLimit: 10 });
 
 
 mongoose.connect(config.mongoDB, {

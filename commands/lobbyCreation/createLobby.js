@@ -3,6 +3,9 @@ const config = require('@config');
 const utils = require('@utils/utils.js');
 const lobbyUtils = require('@utils/lobbyUtils.js');
 const rankUtils = require('@utils/rankUtils.js');
+const teamUtils = require('@utils/teamUtils.js');
+const MatchSchema = require('@models/MatchSchema.js');
+const TeamSchema = require('@models/TeamSchema.js');
 
 module.exports = {
     name: "createlobby",
@@ -11,7 +14,7 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
         const numTracks = config.lobbies[lobby].numRaces;
-        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n6 am Jakarta/Indonesia\n";
+        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n6 am Jakarta\n";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         const maxPlayersPerLobby = config.lobbies[lobby].maxPlayers;
@@ -22,12 +25,12 @@ module.exports = {
 
         let lobbyCompleted = false;
         let futureTask = undefined;
-        let role = utils.getRoleByName(message, config.rankedRole);
+        let role = utils.getRoleByName(message, config.lobbies[lobby].role);
         let tracks = "";
         let usersAndFlags = new Map();
         let playersRank = [];
-        let averageRank = 0;
-        
+
+        let lobbyNumber = await lobbyUtils.saveLobby(lobby, [], 0, 0);        
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
             channel = message.channel;
@@ -39,7 +42,7 @@ module.exports = {
 
         let rankedMessage = await channel.send("<@&" + role.id + ">");
         let messageEmbed = await channel.send(embed);
-        messageEmbed.react(config.emojis.confirm);
+        await messageEmbed.react(config.emojis.confirm);
         
         const filter = (reaction, user) => {
             return reaction.emoji.name === config.emojis.confirm && !user.bot;
@@ -48,101 +51,88 @@ module.exports = {
         const collector = messageEmbed.createReactionCollector(filter, { dispose: true, time: lobbyUtils.getLobbyDuration(time) });
 
         collector.on('collect', async (reaction, user) => {
-            let playerRankString = "";
-            let player;
             try {
-                if(await lobbyUtils.isRegistered(reaction, user)) {
-                    let playerRank = await rankUtils.findPlayerRank(user);
-                    playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
-                    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
-                
-                    let usersString = "";
-                    usersAndFlags.set(user, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
-                    usersAndFlags.forEach(element => usersString += element); 
-                    averageRank = rankUtils.calculateAverageRank(playersRank);
-
-                    const newEmbed = new Discord.MessageEmbed()
-                        .setColor(color)
-                        .setTitle(title)
-                        .addField("\nPlayers", usersString, true)
-                        .addField("\nIDs & Ranks", playerRankString, true)
-                        .addField("\nAverage rank", averageRank, true)
-                        .addField("Time", time, true);
-
-                    if(usersAndFlags.size <= maxPlayersPerLobby) {
-                        lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
-                        if(usersAndFlags.size >= minPlayersPerLobby) {
-                            if(tracks == "") {
-                                tracks = lobbyUtils.genTracks(numTracks);
-                            }
-                            newEmbed.addField("Tracks", tracks, true);
-                            futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), lobbyUtils.parseTime(time), message, notifications);
-                            futureTask.first.start();
-                            futureTask.second.start();
-                        }
-                        messageEmbed.edit(newEmbed);
-                    }
-                    else if(usersAndFlags.size > maxPlayersPerLobby) {
-                        await reaction.users.remove(user.id);
-                        lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
-                    }
+                if(!config.lobbies[lobby].team) {
+                    let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message);
+                    playersRank = aux.playersRank;
+                    usersAndFlags = aux.usersAndFlags;
                 }
                 else {
-                    await reaction.users.remove(user.id);
-                    let answer = "before to sign up a lobby you must set your player name, use !set_player_name or !spn.\n\n" + 
-                                 "Example:\n!set_player_name <your player name>\n!spn <your player name>";
-                    lobbyChannel.send("<@" + user.id + ">, " + answer);
+                    let result = await lobbyUtils.validTeam(user, lobbyChannel, reaction, lobby, lobbyNumber);
+                    
+                    if(result.valid) {    
+                        let team = result.team;
+                        let teamMembers = team.discordPartnersIds;
+
+                        for(let memberId of teamMembers) {
+                            let u = {};
+                            u.id = memberId;
+                            let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, u, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message);
+                            playersRank = aux.playersRank;
+                            usersAndFlags = aux.usersAndFlags;
+                        }
+
+                        await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message);
+                        await TeamSchema.findOneAndUpdate({ 
+                            discordPartnersIds: message.author.id,
+                            lobbyMatch: null
+                        }, { lobbyMatch: lobbyNumber }).exec();
+                    }
                 }
             } catch(err) { console.log(err); }
         });
 
         collector.on('remove', async (reaction, user) => {  
-            if(await lobbyUtils.isRegistered(reaction, user)) {
+            if(!config.lobbies[lobby].team) {
+                if(await lobbyUtils.isRegistered(user)) {
+                    lobbyCompleted = false;
+
+                    usersAndFlags.delete(user.id);
+                    let playerRank = await rankUtils.findPlayerRank(user);
+                    playerRank = rankUtils.getRankInfo(lobby, playerRank);
+                    playersRank = playersRank.filter(item => item.id !== playerRank.id);  
+                    
+                    lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
+                }
+            }
+            else {
+                let team = await teamUtils.getTeamMembers(user.id);
+                if(team == null) { return; }
+
                 lobbyCompleted = false;
-                let usersString = "";
-                let playerRankString = "";
-                usersAndFlags.delete(user);
-                usersAndFlags.forEach(element => usersString += element);
+                let teamMembers = team.discordPartnersIds;
 
-                let playerRank = await rankUtils.findPlayerRank(user);
-                playerRank = rankUtils.getRankInfo(lobby, playerRank);
-                playersRank = playersRank.filter(item => item.id !== playerRank.id);  
-                playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+                for(let memberId of teamMembers) {
+                    let u = {};
+                    u.id = memberId;
                 
-                averageRank = rankUtils.calculateAverageRank(playersRank);
-
-                const newEmbed = new Discord.MessageEmbed()
-                    .setColor(color)
-                    .setTitle(title);
-
-                if(usersString != "") {
-                    newEmbed.addField("\nPlayers", usersString, true)
-                            .addField("\nIDs & Ranks", playerRankString, true)
-                            .addField("\nAverage rank", averageRank, true);
+                    usersAndFlags.delete(u.id);
+                    let playerRank = await rankUtils.findPlayerRank(u);
+                    playerRank = rankUtils.getRankInfo(lobby, playerRank);
+                    playersRank = playersRank.filter(item => item.id !== playerRank.id);  
                 }
 
-                newEmbed.addField("Time", time, true);
+                lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
 
-                if(usersAndFlags.size >= minPlayersPerLobby) {
-                    if(tracks != "") {
-                        newEmbed.addField("Tracks", tracks, true);
-                    }        
-                    futureTask = lobbyUtils.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), lobbyUtils.parseTime(time), message, notifications);
-                    futureTask.first.start();
-                    futureTask.second.start();
-                }
-                else if(futureTask != undefined) {
-                    futureTask.first.destroy();
-                    futureTask.second.destroy();
-                }
-
-                messageEmbed.edit(newEmbed);
+                await TeamSchema.findOneAndUpdate({ 
+                    discordPartnersIds: message.author.id,
+                    lobbyMatch: lobbyNumber
+                }, { lobbyMatch: null }).exec();
             }
         });
 
         collector.on('end', async (reaction, user) => {
             let messagesArray = [messageEmbed, rankedMessage];
-            lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), tracks, lobby, averageRank);
+            if(Array.from(usersAndFlags.keys()).length >= minPlayersPerLobby) {
+                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), tracks, lobby, averageRank, lobbyNumber);
+            }
+            else {
+                messagesArray.forEach(element => { element.delete(); });
+            }
+
+            if(!config.lobbies[lobby].team) {
+                // eliminar todos los equipos para liberarlos por si quieren planificar otras futuras rankeds
+            }
         });
     }
 

@@ -3,19 +3,19 @@
 	"token": "ODA3MzA5MTgxNjUyNjk3MTE4.YB2HQw.N-u2c0DVwhUKoU21wFWZKvtJKuk",
 	"mongoDB": "mongodb://admin:1234@127.0.0.1:27017/ctr_switch_bot?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false",
 	"ownerId": "712342385463394456",
-	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/", "./commands/setUpPlayer/"],
+	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/", "./commands/setUpPlayer/", "./commands/setUpTeam/"],
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
 	"maxCharacersPlayerName": "9",
 	"rankedSanction": "-10",
-	"ELOrankConstK": "60",
+	"ELOrankConstK": "90",
 	"defaultFlag": "🇻🇦",
 	"lobbies": {
-		"FFA": { "value": "FFA", "rankName":"ffa", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": false }, 
-		"Duos": { "value": "Duos", "rankName":"duos", "channel": "👥duos", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": true }, 
-		"3 - 3 vs": { "value": "3 - 3 vs", "rankName":"war3vs3", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 6, "maxPlayers": 6, "team": true }, 
-		"4 - 4 vs": { "value": "4 - 4 vs", "rankName":"war4vs4", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 8, "maxPlayers": 8, "team": true }, 
-		"Itemless": { "value": "Itemless", "rankName":"itemless", "channel": "👤💣⛔itemless", "numRaces": 8, "minsPlayers": 3, "maxPlayers": 8, "team": false }
+		"FFA": { "value": "FFA", "rankName":"ffa", "channel": "👤ffa", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": false, "role": "Ranked FFA" }, 
+		"Duos": { "value": "Duos", "rankName":"duos", "channel": "👥duos", "numRaces": 8, "minsPlayers": 4, "maxPlayers": 8, "team": true, "role": "Ranked Duos" }, 
+		"3 - 3 vs": { "value": "3 - 3 vs", "rankName":"war3vs3", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 6, "maxPlayers": 6, "team": true, "role": "Ranked War" }, 
+		"4 - 4 vs": { "value": "4 - 4 vs", "rankName":"war4vs4", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 8, "maxPlayers": 8, "team": true, "role": "Ranked War" }, 
+		"Itemless": { "value": "Itemless", "rankName":"itemless", "channel": "👤💣⛔itemless", "numRaces": 8, "minsPlayers": 3, "maxPlayers": 8, "team": false, "role": "Ranked Itemless" }
 	},
 	"localTimeZone": {"value": "Madrid", "UTCDifference": "+1", "timeZone": "Europe/Madrid"},
 	"timeZones":[

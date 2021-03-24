@@ -5,7 +5,6 @@ const matchSchema = new mongoose.Schema({
   uuid: { type: String, require: true, unique: true },
   matchNumber: { type: Number, require: true, unique: true },
   lobbyModality: { type: String, require: true },
-  numPlayers: { type: Number, require: true },
   players: { type: [PlayerSchema], require: true },
   averageRank: { type: Number, require: true },
   teams: { type: [[PlayerSchema]], require: false },
