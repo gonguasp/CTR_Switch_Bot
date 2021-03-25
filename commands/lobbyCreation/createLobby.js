@@ -4,7 +4,6 @@ const utils = require('@utils/utils.js');
 const lobbyUtils = require('@utils/lobbyUtils.js');
 const rankUtils = require('@utils/rankUtils.js');
 const teamUtils = require('@utils/teamUtils.js');
-const MatchSchema = require('@models/MatchSchema.js');
 const TeamSchema = require('@models/TeamSchema.js');
 
 module.exports = {
@@ -53,26 +52,32 @@ module.exports = {
         collector.on('collect', async (reaction, user) => {
             try {
                 if(!config.lobbies[lobby].team) {
-                    let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message);
+                    let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask);
                     playersRank = aux.playersRank;
                     usersAndFlags = aux.usersAndFlags;
+                    tracks = aux.tracks;
+                    futureTask = aux.futureTask;
                 }
                 else {
-                    let result = await lobbyUtils.validTeam(user, lobbyChannel, reaction, lobby, lobbyNumber);
+                    let validTeam = await teamUtils.validTeam(user, lobbyChannel, reaction, lobby, lobbyNumber);
                     
-                    if(result.valid) {    
-                        let team = result.team;
+                    if(validTeam.valid) {    
+                        let team = validTeam.team;
                         let teamMembers = team.discordPartnersIds;
 
                         for(let memberId of teamMembers) {
                             let u = {};
                             u.id = memberId;
-                            let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, u, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message);
+                            let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, u, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask);
                             playersRank = aux.playersRank;
                             usersAndFlags = aux.usersAndFlags;
+                            tracks = aux.tracks;
+                            futureTask = aux.futureTask;
                         }
 
-                        await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message);
+                        let aux = await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask);
+                        tracks = aux.tracks;
+                        futureTask = aux.futureTask;
                         await TeamSchema.findOneAndUpdate({ 
                             discordPartnersIds: message.author.id,
                             lobbyMatch: null
@@ -92,7 +97,7 @@ module.exports = {
                     playerRank = rankUtils.getRankInfo(lobby, playerRank);
                     playersRank = playersRank.filter(item => item.id !== playerRank.id);  
                     
-                    lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
+                    futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
                 }
             }
             else {
@@ -112,7 +117,7 @@ module.exports = {
                     playersRank = playersRank.filter(item => item.id !== playerRank.id);  
                 }
 
-                lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
+                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
 
                 await TeamSchema.findOneAndUpdate({ 
                     discordPartnersIds: message.author.id,
@@ -124,14 +129,14 @@ module.exports = {
         collector.on('end', async (reaction, user) => {
             let messagesArray = [messageEmbed, rankedMessage];
             if(Array.from(usersAndFlags.keys()).length >= minPlayersPerLobby) {
-                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), tracks, lobby, averageRank, lobbyNumber);
+                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
             }
             else {
                 messagesArray.forEach(element => { element.delete(); });
             }
 
-            if(!config.lobbies[lobby].team) {
-                // eliminar todos los equipos para liberarlos por si quieren planificar otras futuras rankeds
+            if(config.lobbies[lobby].team) {
+                teamUtils.deleteTeams(lobbyNumber);
             }
         });
     }

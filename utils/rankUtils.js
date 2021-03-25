@@ -1,7 +1,6 @@
 require("module-alias/register");
 
 const config = require('@config');
-const Discord = require("discord.js");
 const PlayerSchema = require('@models/PlayerSchema.js');
 const RankSchema = require('@models/RankSchema.js');
 const MatchSchema = require('@models/MatchSchema.js');
@@ -242,7 +241,7 @@ async function isValidResult(content) {
         if(result.valid) {
             let countPipes = content.split("|").length - 1;
             result.valid = countPipes % (config.lobbies[rankedInfo.lobbyModality].numRaces - 1) == 0
-                && countPipes > ((config.lobbies[rankedInfo.lobbyModality].numRaces - 1) * parseInt(config.lobbies[rankedInfo.lobbyModality].minsPlayers));
+                && countPipes >= ((config.lobbies[rankedInfo.lobbyModality].numRaces - 1) * parseInt(config.lobbies[rankedInfo.lobbyModality].minsPlayers));
         }
     }
     else { result.valid = false; }

@@ -4,32 +4,18 @@ const config = require('@config');
 const utils = require('@utils/utils.js');
 const rankUtils = require('@utils/rankUtils.js');
 const Discord = require("discord.js");
-const mongoose = require("mongoose");
+const mongoDB = require("./db/connect.js");
 const client = new Discord.Client({ retryLimit: 10 });
 
 
-mongoose.connect(config.mongoDB, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    userFindAndModify: false,
-    useFindAndModify: false
-}).then(() => {
-    console.log("conxion con la base de datos exitosa");
-}).catch((err) => {
-    console.log(err);
-});
-
+mongoDB.connectDB();
 client.commands = utils.readCommands(client);
 
 client.on("message", message => {
     let command;
     try {
-        if(message.guild != null) {
-            rankUtils.processIfRankedResults(message);
-        }
-
-        if(!message.content.startsWith(config.prefix) || message.author.bot)
-            return;
+        if(message.guild != null) { rankUtils.processIfRankedResults(message); }
+        if(!message.content.startsWith(config.prefix) || message.author.bot) { return; }
 
         const args = message.content.slice(config.prefix.length).split(" ");
         command = args.shift().toLowerCase();
@@ -55,25 +41,8 @@ client.on("guildMemberAdd", member => {
     }
 });
 
-client.on("uncaughtException", (err) => {
-    console.error("EXCEPTION UNCAUGHT = \n" + err);
-});
-
-client.on("unhandledRejection", (reason, promise) => {
-    console.error("REJECTION UNHANDLED = \n" + reason.stack || reason);
-});
-
-client.on("error", (code) => {
-    console.error("ERROR OCURRED = \n" + code);
-});
-
-client.once("exit", () => {
-    console.log("Turning off...");
-});
-
 client.once("ready", () => {
-    console.log("CTR_SwitchBot is online!");
-    console.log("Active since " + new Date().toISOString());
+    console.log("CTR_SwitchBot is online! Active since " + new Date().toISOString());
 });
 
 client.login(config.token);

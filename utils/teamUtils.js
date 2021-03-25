@@ -1,7 +1,6 @@
 require("module-alias/register");
 
 const config = require('@config');
-const Discord = require("discord.js");
 const TeamSchema = require('@models/TeamSchema.js');
 const MatchSchema = require('@models/MatchSchema.js');
 
@@ -62,4 +61,36 @@ exports.getTeamMembers = async function(memberId) {
         discordPartnersIds: memberId
     }).exec();
     return memberHasTeam;
+}
+
+exports.deleteTeams = async function (lobbyNumber) {
+    try {
+        await TeamSchema.deleteMany({ lobbyMatch: lobbyNumber });
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+exports.validTeam = async function (user, lobbyChannel, reaction, lobby, lobbyNumber) {
+    let result = {};
+    result.valid = true;
+    let team = await this.getTeamMembers(user.id);
+    if(team == null) {
+        lobbyChannel.send("<@" + user.id + ">, before to sign up a " + lobby + " lobby you must set your team, use !set_partner @yourPartner.");
+        await reaction.users.remove(user.id);
+        result.valid = false;
+    }
+    else if(team.modality != lobby) {
+        lobbyChannel.send("<@" + user.id + ">, your are trying to sign up a lobby modality of " + lobby + " with a team of " + team.modality + ". Not allowed.");
+    }
+    else if(team.lobbyMatch != null && team.lobbyMatch != lobbyNumber) {
+        team.discordPartnersIds.forEach(async (id) => {
+            await reaction.users.remove(id);
+        });
+        result.valid = false;
+        lobbyChannel.send("<@" + user.id + ">, before to sign up to that lobby unsubscribe from the other you are signed in");
+    }
+
+    result.team = team;
+    return result;
 }
