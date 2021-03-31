@@ -13,6 +13,8 @@ module.exports = {
     usage: ["", "custom"],
     guildOnly: true,
     public: true,
+    example: "!lobby\n!lobby custom",
+    permissions: false,
     execute(message, args, Discord, client) {
 
         const roles = [];

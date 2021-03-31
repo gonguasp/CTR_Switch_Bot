@@ -11,6 +11,8 @@ module.exports = {
     usage: "",
     guildOnly: true,
     public: true,
+    example: "!get_player",
+    permissions: false,
     execute(message, args, Discord, client)  {
 
         let player = PlayerSchema.where({ discordId: message.author.id });

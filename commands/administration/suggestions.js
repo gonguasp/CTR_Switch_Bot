@@ -6,6 +6,8 @@ module.exports = {
     guildOnly: true,
     public: true,
     aliases: ["suggest", "sugerencia"],
+    example: "!suggestion text",
+    permissions: false,
 	execute(message, args, Discord, client, cmd) {
         const channel = message.guild.channels.cache.find(ch => ch.name == config.suggestionChannel);
         if(!channel) return message.channel.send("suggestions channel does not exist!");

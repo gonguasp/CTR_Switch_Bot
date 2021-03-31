@@ -6,6 +6,8 @@ module.exports = {
     description: "this is just a joke",
     guildOnly: true,
     public: true,
+    example: "!joke",
+    permissions: false,
     execute(message, args, Discord, client) {
 
         if(utils.areAllUsed(config.jokes))

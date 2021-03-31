@@ -20,6 +20,7 @@ exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, tim
     }
     
     let channel = utils.getChannelByName(message, config.lobbies[lobby].channel);
+    usersString = UsersStringToDiscrodUsers(usersString);
     futureTask = {};
     futureTask.first = createCron(usersString, time, channel, notifications[0]);
     futureTask.second = createCron(usersString, time, channel, notifications[1]);
@@ -188,7 +189,7 @@ exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, 
     let usersString = "";
     usersAndFlags.forEach(element => usersString += element);
     playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
-    let averageRank = rankUtils.calculateAverageRank(playersRank);
+    let averageRank = await rankUtils.calculateAverageRank(playersRank);
 
     const newEmbed = new Discord.MessageEmbed()
         .setColor(color)
@@ -217,15 +218,18 @@ exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, 
     }
 
     messageEmbed.edit(newEmbed);
+    return futureTask;
 }
 
-exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message) {
+exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask) {
     if(await this.isRegistered(user)) {
         let playerRank = await rankUtils.findPlayerRank(user);
         playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
         usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
         if(!config.lobbies[lobby].team) {
-            await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message);
+            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask);
+            tracks = result.tracks;
+            futureTask = result.futureTask;
         }
     }
     else {
@@ -242,33 +246,10 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
         lobbyChannel.send("<@" + user.id + ">, " + answer);
     }
 
-    return { playersRank, usersAndFlags };
+    return { playersRank, usersAndFlags, tracks, futureTask };
 }
 
-exports.validTeam = async function (user, lobbyChannel, reaction, lobby, lobbyNumber) {
-    let result = {};
-    result.valid = true;
-    let team = await teamUtils.getTeamMembers(user.id);
-    if(team == null) {
-        lobbyChannel.send("<@" + user.id + ">, before to sign up a " + lobby + " lobby you must set your team, use !set_partner @yourPartner.");
-        await reaction.users.remove(user.id);
-        result.valid = false;
-    }
-    else if(team.modality != lobby) {
-        lobbyChannel.send("<@" + user.id + ">, your are trying to sign up a lobby modality of " + lobby + " with a team of " + team.modality + ". Not allowed.");
-    }
-    else if(team.lobbyMatch == lobbyNumber) {
-        team.discordPartnersIds.forEach(async (id) => {
-            await reaction.users.remove(id);
-        });
-        result.valid = false;
-    }
-
-    result.team = team;
-    return result;
-}
-
-exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message) {
+exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask) {
 
     let playerRankString = "";
     let usersString = "";
@@ -302,6 +283,8 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
         await reaction.users.remove(user.id);
         lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
     }
+
+    return { tracks, futureTask };
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
@@ -322,17 +305,17 @@ function deleteMessageInFuture(messagesArray, hours) {
     }).start();
 }
 
-async function generateScoresTemplate(lobby, users, numMatch) {
+async function generateScoresTemplate(lobby, usersId, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
     let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
     // hacer switch en un futuro
     if(lobby == "FFA") {
-        for(const user of users) {
-            let playerInfo = await getPlayerInfo(user);
-            let username = user.username.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
+        for(const userId of usersId) {
+            let playerInfo = await getPlayerInfo(userId);
+            let username = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
             let flag = playerInfo == undefined ? " [VA] " : " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
-            if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:"); console.log(user); }
+            if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:"); console.log(userId); }
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
         }
     }
@@ -363,8 +346,8 @@ async function getPlayersInfo(users) {
     return playersInfoArray;
 }
 
-async function getPlayerInfo(user) {
-    let playerInfo = await PlayerSchema.findOne({ discordId: user.id }).exec();
+async function getPlayerInfo(userId) {
+    let playerInfo = await PlayerSchema.findOne({ discordId: userId }).exec();
     playerInfo.discordUserName = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).trimEnd();
         
     return playerInfo;
@@ -401,7 +384,6 @@ function isCorrectTime(time) {
 function getFormatedTimeZones(time, emojiTimeZone, format) {
     
     let hours = time.split(":")[0];
-    hours = hours.split(" ")[0];
     let minutes = 0;
     
     if(format == config.hourFormat.horaMinutoUS || format == config.hourFormat.horaUS) {
@@ -530,7 +512,18 @@ function createCron(usersString, time, channel, notification) {
             channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
         }
     }, {
-        scheduled: false,
-        timezone: config.localTimeZone.timeZone
+        scheduled: false
     });
+}
+
+function UsersStringToDiscrodUsers(usersString) {
+    try {
+        for(let i = 0; i < usersString.length; i++) {
+            usersString[i] = "<@" + usersString[i] + ">";
+        }
+    } catch (err) {
+        console.log(err);
+    }
+    
+    return usersString;
 }

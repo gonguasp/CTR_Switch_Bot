@@ -7,6 +7,8 @@ module.exports = {
     guildOnly: true,
     public: true,
     aliases: ["ct"],
+    example: "!check_temperature",
+    permissions: true,
 	execute(message, args, Discord, client, cmd) {
         if(message.author.id == config.ownerId) {
             exec("sensors", (error, stdout, stderr) => {

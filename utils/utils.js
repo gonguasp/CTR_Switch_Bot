@@ -123,3 +123,17 @@ exports.generateUUID = function () {
         return v.toString(16);
     });
 }
+
+exports.sendRandomMeme = function (member) {
+    try {
+        const channel = this.getChannelByName(member, "⭐welcome");
+        if (!channel) return;
+
+        let memes = this.getWelcomeMemes();
+        let image = memes[Math.floor(Math.random() * memes.length)];
+
+        channel.send(`Welcome to the server, ${member}!`, {files: [config.welcomeMemesDir + image]});
+    } catch (err) {
+        console.log(err);
+    }
+}

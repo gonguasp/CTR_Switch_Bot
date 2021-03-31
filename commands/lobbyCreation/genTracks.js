@@ -7,8 +7,10 @@ module.exports = {
     name: "gentracks",
     description: "generates random tracks",
 	guildOnly: true,
-	aliases: ["tracks", "rnd"],
+	aliases: ["tracks", "rnd", "rng"],
 	public: true,
+	example: "!gentracks\n!gentracks 10",
+    permissions: false,
     execute(message, args, Discord, client){
 		if(!args.length) {
 			message.channel.send(lobbyUtils.genTracks(8));

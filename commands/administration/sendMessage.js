@@ -7,6 +7,8 @@ module.exports = {
     aliases: "sm",
     guildOnly: true,
     public: true,
+    example: "!send_message #channel text",
+    permissions: true,
 	execute(message, args, Discord, client) {
 
         if(!utils.userHasRoles(message, config.privilegiesRole)) {

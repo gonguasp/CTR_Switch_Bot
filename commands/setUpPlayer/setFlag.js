@@ -13,6 +13,8 @@ module.exports = {
     usage: "",
     guildOnly: true,
     public: true,
+    example: "!set_flag 🇻🇦\n!set_falg",
+    permissions: false,
     async execute(message, args, Discord, client)  {
 
         let update = {

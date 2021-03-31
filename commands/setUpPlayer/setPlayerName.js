@@ -12,6 +12,8 @@ module.exports = {
     usage: "",
     guildOnly: true,
     public: true,
+    example: "!set_flag playerName",
+    permissions: false,
     async execute(message, args, Discord, client)  {
 
         if(args[0] == undefined) {

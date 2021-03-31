@@ -7,6 +7,8 @@ module.exports = {
 	description: 'Reloads a command',
     guildOnly: true,
     public: true,
+    example: "!reload command",
+    permissions: true,
 	execute(message, args) {
 
         if(!utils.userHasRoles(message, config.privilegiesRole)) {

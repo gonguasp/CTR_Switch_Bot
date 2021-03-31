@@ -1,14 +1,15 @@
 const config = require('@config');
 const mongoose = require("mongoose");
 
-exports.connectDB = function(client) {
+exports.connectDB = function() {
     
     mongoose.connect(config.mongoDB, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        userFindAndModify: false
+        userFindAndModify: false,
+        useFindAndModify: false
     }).then(() => {
-        console.log("conxion con la base de datos exitosa");
+        console.log("CONNECTED TO DATABASE");
     }).catch((err) => {
         console.log(err);
     });
