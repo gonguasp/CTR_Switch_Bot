@@ -6,6 +6,7 @@
 	"commandsDirs": ["./commands/", "./commands/lobbyCreation/", "./commands/administration/", "./commands/setUpPlayer/", "./commands/setUpTeam/"],
 	"imagesExtensions": [".jpg", ".png"],
 	"welcomeMemesDir": "./welcome_memes/",
+	"scoreImagesDir": "./score_images/",
 	"maxCharacersPlayerName": "9",
 	"rankedSanction": "-10",
 	"ELOrankConstK": "90",
@@ -17,12 +18,12 @@
 		"4 - 4 vs": { "value": "4 - 4 vs", "rankName":"war4vs4", "channel": "👥👥war", "numRaces": 8, "minsPlayers": 8, "maxPlayers": 8, "team": true, "role": "Ranked War" }, 
 		"Itemless": { "value": "Itemless", "rankName":"itemless", "channel": "👤💣⛔itemless", "numRaces": 8, "minsPlayers": 3, "maxPlayers": 8, "team": false, "role": "Ranked Itemless" }
 	},
-	"localTimeZone": {"value": "Madrid", "UTCDifference": "+1", "timeZone": "Europe/Madrid"},
+	"localTimeZone": {"value": "Madrid", "UTCDifference": "+2", "timeZone": "Europe/Madrid"},
 	"timeZones":[
 		{"name": "Mexico", "emoji": "1️⃣", "UTCZone": "UTC-6" , "timeZone": "America/Mexico_City"},
-		{"name": "New York", "emoji": "2️⃣", "UTCZone": "UTC-5", "timeZone": "America/New_York"},
-		{"name": "Madrid", "emoji": "3️⃣", "UTCZone": "UTC+1", "timeZone": "Europe/Madrid"},
-		{"name": "Jakarta/Indonesia", "emoji": "4️⃣", "UTCZone": "UTC+7", "timeZone": "Asia/Jakarta"}
+		{"name": "New York", "emoji": "2️⃣", "UTCZone": "UTC-4", "timeZone": "America/New_York"},
+		{"name": "Madrid", "emoji": "3️⃣", "UTCZone": "UTC+2", "timeZone": "Europe/Madrid"},
+		{"name": "Jakarta", "emoji": "4️⃣", "UTCZone": "UTC+7", "timeZone": "Asia/Jakarta"}
 	],
 	"moduleAliases": {
 		"@root": ".",

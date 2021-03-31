@@ -7,6 +7,8 @@ module.exports = {
     description: "shows your rank",
     guildOnly: true,
     public: true,
+    example: "!rank",
+    permissions: false,
     async execute(message, args, Discord, client) {
 
         let rank = (await RankSchema.find({ discordId: message.author.id }))[0];

@@ -6,6 +6,8 @@ module.exports = {
     guildOnly: true,
     public: true,
     aliases: ["sh"],
+    example: "!shutdown",
+    permissions: true,
 	execute(message, args, Discord, client, cmd) {
         if(message.author.id == config.ownerId) {
             message.channel.send("Shutting down...").then(() => {

@@ -11,6 +11,8 @@ module.exports = {
     usage: "",
     guildOnly: true,
     public: true,
+    example: "!unset_partner",
+    permissions: false,
     async execute(message, args, Discord, client)  {
         if(!(await teamUtils.checkTeamMembersFree( [ message.author.id ] )).free) {
             if(await teamUtils.deleteTeam(message)) {

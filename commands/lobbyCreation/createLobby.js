@@ -13,7 +13,7 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
         const numTracks = config.lobbies[lobby].numRaces;
-        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n6 am Jakarta\n";
+        const time = args != "" ? args : "4 pm Mexico\n6 pm New York\n12 am Madrid\n5 am Jakarta\n";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         const maxPlayersPerLobby = config.lobbies[lobby].maxPlayers;
@@ -47,6 +47,11 @@ module.exports = {
             return reaction.emoji.name === config.emojis.confirm && !user.bot;
         };
         
+        if(lobbyUtils.getLobbyDuration(time) < 0) {
+            lobbyChannel.send("not a valid time! Please, check the format.");
+            return;
+        }
+
         const collector = messageEmbed.createReactionCollector(filter, { dispose: true, time: lobbyUtils.getLobbyDuration(time) });
 
         collector.on('collect', async (reaction, user) => {

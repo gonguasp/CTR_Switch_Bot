@@ -11,6 +11,8 @@ module.exports = {
     usage: "",
     guildOnly: true,
     public: true,
+    example: "!set_partner @godi\n!set_partner @godi @luka ...",
+    permissions: false,
     async execute(message, args, Discord, client)  {
         if(args.includes("<@" + message.author.id + ">")) {
             message.reply("you can not add yourself to the team twice.");

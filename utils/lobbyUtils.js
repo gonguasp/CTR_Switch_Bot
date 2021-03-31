@@ -20,6 +20,7 @@ exports.scheduleLobbyNotification = function(lobby, futureTask, usersString, tim
     }
     
     let channel = utils.getChannelByName(message, config.lobbies[lobby].channel);
+    usersString = UsersStringToDiscrodUsers(usersString);
     futureTask = {};
     futureTask.first = createCron(usersString, time, channel, notifications[0]);
     futureTask.second = createCron(usersString, time, channel, notifications[1]);
@@ -383,7 +384,6 @@ function isCorrectTime(time) {
 function getFormatedTimeZones(time, emojiTimeZone, format) {
     
     let hours = time.split(":")[0];
-    hours = hours.split(" ")[0];
     let minutes = 0;
     
     if(format == config.hourFormat.horaMinutoUS || format == config.hourFormat.horaUS) {
@@ -512,7 +512,18 @@ function createCron(usersString, time, channel, notification) {
             channel.send(usersString + "\nThe ranked is going to start in " + notification + " min");
         }
     }, {
-        scheduled: false,
-        timezone: config.localTimeZone.timeZone
+        scheduled: false
     });
+}
+
+function UsersStringToDiscrodUsers(usersString) {
+    try {
+        for(let i = 0; i < usersString.length; i++) {
+            usersString[i] = "<@" + usersString[i] + ">";
+        }
+    } catch (err) {
+        console.log(err);
+    }
+    
+    return usersString;
 }

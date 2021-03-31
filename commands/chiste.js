@@ -6,6 +6,8 @@ module.exports = {
     description: "this is just a joke in Spanish",
     guildOnly: true,
     public: true,
+    example: "!chiste",
+    permissions: false,
     execute(message, args, Discord, client) {
         
         if(utils.areAllUsed(config.chistes))

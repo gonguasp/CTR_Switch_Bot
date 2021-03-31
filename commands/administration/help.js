@@ -8,19 +8,34 @@ module.exports = {
 	usage: "[command name]",
     guildOnly: true,
     public: true,
+    example: "!help",
+    permissions: false,
 	execute(message, args) {
 		
         const data = [];
         const { commands } = message.client;
 
         if (!args.length) {
-
             const newEmbed = new Discord.MessageEmbed()
                 .setColor("#FFFFFF")
                 .setTitle(":information_source: Here\'s a list of all my commands:")
-                .addField("\nPublic commands.", "\`\`\` " + commands.map(command => command.public ? command.name + "\n " : "").join("") + "\`\`\`", true)
-                .addField("\nPrivate commands.", "\`\`\` " + commands.map(command => !command.public ? command.name + "\n " : "").join("") + "\`\`\`", true)
                 .addField("Info", `\nYou can send \`${prefix}help [command name]\` to get info on a specific command!`, true);
+            commands.map(command => {
+                if(command.public) {
+                    let commandInfo = "";
+                    if(command.permissions) {
+                        commandInfo += "**PERMISSIONS NEEDED**\n";
+                    }
+                    commandInfo += "*" + command.description + "*";
+                    if(command.aliases != undefined) {
+                        commandInfo += "\nAnother usages: " + command.aliases;
+                    } 
+                    if(command.example != undefined) {
+                        commandInfo += "\`\`\`\nHow to use it:\n" + command.example + "\`\`\`";
+                    } 
+                    newEmbed.addField("**" + command.name + "**", commandInfo);
+                }
+            });
 
             return message.author.send(newEmbed)
                 .then(() => {

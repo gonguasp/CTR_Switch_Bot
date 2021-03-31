@@ -2,7 +2,6 @@ require("module-alias/register");
 
 const config = require('@config');
 const TeamSchema = require('@models/TeamSchema.js');
-const MatchSchema = require('@models/MatchSchema.js');
 
 
 exports.createTeam = async function(message, membersId) {

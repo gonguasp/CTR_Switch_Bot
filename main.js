@@ -21,24 +21,13 @@ client.on("message", message => {
         command = args.shift().toLowerCase();
         utils.executeCommand(message, args, Discord, client, command);
     } catch (error) {
-        console.error(error);
+        console.error(error + "\ncommand =" + command);
         message.reply('there was an error trying to execute that command!');
-        console.log("command =" + command);
     }
 });
 
 client.on("guildMemberAdd", member => {
-    try {
-        const channel = utils.getChannelByName(member, "⭐welcome");
-        if (!channel) return;
-
-        let memes = utils.getWelcomeMemes();
-        let image = memes[Math.floor(Math.random() * memes.length)];
-
-        channel.send(`Welcome to the server, ${member}!`, {files: [config.welcomeMemesDir + image]});
-    } catch (error) {
-        console.log(error);
-    }
+    utils.sendRandomMeme(member);    
 });
 
 client.once("ready", () => {
