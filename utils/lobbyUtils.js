@@ -59,9 +59,8 @@ exports.setLobbyTimeZone = async function (message, Discord, lobby, modeuleCreat
     const color = "#FFFFFF";
     let time = "";
     Object.values(config.timeZones).forEach(timeZone => {
-        time += timeZone.emoji + "  " + timeZone.UTCZone + " " + timeZone.name + "\n";
+        time += timeZone.emoji + "  " + timeZone.UTCZone + " " + timeZone.value + "\n";
     });
-    time = time.replace("NewYork", "New York");
 
     const embed = new Discord.MessageEmbed()
                     .setColor(color)
@@ -382,7 +381,6 @@ function isCorrectTime(time) {
 }
 
 function getFormatedTimeZones(time, emojiTimeZone, format) {
-    
     let hours = time.split(":")[0];
     let minutes = 0;
     
@@ -408,7 +406,7 @@ function getFormatedTimeZones(time, emojiTimeZone, format) {
         else
             timeLocaled = timeLocaled.split(":")[0] + ":" + timeLocaled.split(":")[1] + " " + timeLocaled.split(" ")[1].toLowerCase();
 
-        formatedTime += timeLocaled + " " + timeZoneObject.name + "\n";
+        formatedTime += timeLocaled + " " + timeZoneObject.value + "\n";
     }
     
     return formatedTime;
@@ -434,7 +432,6 @@ async function setLobbyLocalTime(message, timeZone, Discord, lobby){
             })
             .then(message => {
                 message = message.first();
-                
                 let correctTime_format = isCorrectTime(message.content);
 
                 if(correctTime_format.correctTime) {    
