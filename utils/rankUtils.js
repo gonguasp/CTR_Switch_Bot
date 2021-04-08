@@ -73,7 +73,7 @@ exports.processIfRankedResults = async function(message) {
             rankedResults = rankedResults.concat(sanctions);
             message.channel.send("\nMatch #" + info.rankedInfo.matchNumber + "\n\n```" + pretyPrint(rankedResults) + "```");
             await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
-            await editEmbedGlobalResults();
+            await editEmbedGlobalResults(message);
         }
     }
     else if(info.valid && (info != undefined || info.rankedInfo != undefined || info.rankedInfo.scores != undefined)) {
@@ -88,6 +88,15 @@ exports.processIfRankedResults = async function(message) {
     }
     message.delete();
 
+}
+
+exports.updateGlobalResults = async function (message) {
+    try {
+        editEmbedGlobalResults(message);
+        message.channel.send("Global ranked results updated!");
+    } catch(err) {
+        console.log(err);
+    }
 }
 
 /////////////////////////////////////// PRIVATE FUNCTIONS
@@ -184,25 +193,26 @@ function allPlayersExist(message, contentPlayers) {
 }
 
 async function saveRankedResults(results, modality, scoresTable, matchNumber) {
+    let options = {
+        new: true,
+        upsert: true  
+    };
+    let filter;
+    
     for(let result of results) {
         let current = await getPlayerRank(result.discordId);
         let update = {};
         update[modality] = parseInt(result.currentRank);
         update[modality + "Played"] = parseInt(current[modality + "Played"]) + parseInt(1);
-        update[modality + "Won"] = parseInt(current[modality + "Won"]) + parseInt(result.rankChange > 0 ? 1 : 0);
-        let filter = { discordId: result.discordId };
-        let options = {
-            new: true,
-            upsert: true  
-        };
-    
+        update[modality + "Won"] = parseInt(current[modality + "Won"]) + parseInt(parseInt(result.rankChange) > 0 ? 1 : 0);
+        filter = { discordId: result.discordId };
         await RankSchema.findOneAndUpdate(filter, update, options).exec();
+    }
 
-        filter = { matchNumber: matchNumber };
-        update = {};
-        update.scores = scoresTable;
-        await MatchSchema.findOneAndUpdate(filter, update, options).exec();
-    };
+    filter = { matchNumber: matchNumber };
+    update = {};
+    update.scores = scoresTable;
+    await MatchSchema.findOneAndUpdate(filter, update, options).exec();
     
 }
 

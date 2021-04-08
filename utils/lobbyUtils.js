@@ -4,7 +4,6 @@ let createLobby;
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const rankUtils = require('@utils/rankUtils.js');
-const teamUtils = require('@utils/teamUtils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
 const PlayerSchema = require('@models/PlayerSchema.js');
@@ -308,8 +307,7 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
     let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
-    // hacer switch en un futuro
-    if(lobby == "FFA") {
+    if(!config.lobbies[lobby].team) {
         for(const userId of usersId) {
             let playerInfo = await getPlayerInfo(userId);
             let username = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
@@ -317,6 +315,9 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
             if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:"); console.log(userId); }
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
         }
+    }
+    else {
+        
     }
 
     const scoresTemplateEmbed = new Discord.MessageEmbed()

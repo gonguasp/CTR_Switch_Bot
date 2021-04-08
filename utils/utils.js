@@ -48,7 +48,7 @@ exports.areAllUsed = function(array) {
 		if(array[i].used)
 			used++;
 
-	return used == (array.length - 1);
+	return used == (array.length);
 }
 
 exports.areAllSacredOrBlueUsed = function(tracks, numRaces) {
