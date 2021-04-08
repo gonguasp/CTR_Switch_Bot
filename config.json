@@ -20,10 +20,10 @@
 	},
 	"localTimeZone": {"value": "Madrid", "UTCDifference": "+2", "timeZone": "Europe/Madrid"},
 	"timeZones":[
-		{"name": "Mexico", "emoji": "1️⃣", "UTCZone": "UTC-6" , "timeZone": "America/Mexico_City"},
-		{"name": "New York", "emoji": "2️⃣", "UTCZone": "UTC-4", "timeZone": "America/New_York"},
-		{"name": "Madrid", "emoji": "3️⃣", "UTCZone": "UTC+2", "timeZone": "Europe/Madrid"},
-		{"name": "Jakarta", "emoji": "4️⃣", "UTCZone": "UTC+7", "timeZone": "Asia/Jakarta"}
+		{"name": "Mexico", "value": "Mexico / Lima / Bogotá ", "emoji": "1️⃣", "UTCZone": "UTC-5" , "timeZone": "America/Mexico_City"},
+		{"name": "NewYork", "value": "New York", "emoji": "2️⃣", "UTCZone": "UTC-4", "timeZone": "America/New_York"},
+		{"name": "Madrid", "value": "Madrid", "emoji": "3️⃣", "UTCZone": "UTC+2", "timeZone": "Europe/Madrid"},
+		{"name": "Jakarta", "value": "Jakarta", "emoji": "4️⃣", "UTCZone": "UTC+7", "timeZone": "Asia/Jakarta"}
 	],
 	"moduleAliases": {
 		"@root": ".",
@@ -42,6 +42,7 @@
 	},
 	"rankedLobbiesChannel": "ranked-lobbies",
 	"resultsRankedChannel": "results-register",
+	"globalRankChannel": "global-rank",
 	"suggestionChannel": "suggestions",
 	"rankedRole": "Ranked",
 	"privilegiesRole": ["Admin", "Coordinator"],

@@ -4,7 +4,6 @@ let createLobby;
 const config = require('@config');
 const utils = require('@utils/utils.js');
 const rankUtils = require('@utils/rankUtils.js');
-const teamUtils = require('@utils/teamUtils.js');
 const Discord = require("discord.js");
 var cron = require('node-cron');
 const PlayerSchema = require('@models/PlayerSchema.js');
@@ -59,9 +58,8 @@ exports.setLobbyTimeZone = async function (message, Discord, lobby, modeuleCreat
     const color = "#FFFFFF";
     let time = "";
     Object.values(config.timeZones).forEach(timeZone => {
-        time += timeZone.emoji + "  " + timeZone.UTCZone + " " + timeZone.name + "\n";
+        time += timeZone.emoji + "  " + timeZone.UTCZone + " " + timeZone.value + "\n";
     });
-    time = time.replace("NewYork", "New York");
 
     const embed = new Discord.MessageEmbed()
                     .setColor(color)
@@ -309,8 +307,7 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
     let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
-    // hacer switch en un futuro
-    if(lobby == "FFA") {
+    if(!config.lobbies[lobby].team) {
         for(const userId of usersId) {
             let playerInfo = await getPlayerInfo(userId);
             let username = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
@@ -318,6 +315,9 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
             if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:"); console.log(userId); }
             template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
         }
+    }
+    else {
+        
     }
 
     const scoresTemplateEmbed = new Discord.MessageEmbed()
@@ -382,7 +382,6 @@ function isCorrectTime(time) {
 }
 
 function getFormatedTimeZones(time, emojiTimeZone, format) {
-    
     let hours = time.split(":")[0];
     let minutes = 0;
     
@@ -408,7 +407,7 @@ function getFormatedTimeZones(time, emojiTimeZone, format) {
         else
             timeLocaled = timeLocaled.split(":")[0] + ":" + timeLocaled.split(":")[1] + " " + timeLocaled.split(" ")[1].toLowerCase();
 
-        formatedTime += timeLocaled + " " + timeZoneObject.name + "\n";
+        formatedTime += timeLocaled + " " + timeZoneObject.value + "\n";
     }
     
     return formatedTime;
@@ -434,7 +433,6 @@ async function setLobbyLocalTime(message, timeZone, Discord, lobby){
             })
             .then(message => {
                 message = message.first();
-                
                 let correctTime_format = isCorrectTime(message.content);
 
                 if(correctTime_format.correctTime) {    
