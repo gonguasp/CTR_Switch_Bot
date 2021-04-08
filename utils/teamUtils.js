@@ -75,8 +75,6 @@ exports.validTeam = async function (user, lobbyChannel, reaction, lobby, lobbyNu
     result.valid = true;
     let team = await this.getTeamMembers(user.id);
     if(team == null) {
-        lobbyChannel.send("<@" + user.id + ">, before to sign up a " + lobby + " lobby you must set your team, use !set_partner @yourPartner.");
-        await reaction.users.remove(user.id);
         result.valid = false;
     }
     else if(team.modality != lobby) {

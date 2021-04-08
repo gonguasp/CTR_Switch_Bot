@@ -13,7 +13,7 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
         const numTracks = config.lobbies[lobby].numRaces;
-        const time = args != "" ? args : "4 pm Mexico\n6 pm New York\n12 am Madrid\n5 am Jakarta\n";
+        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n5 am Jakarta\n";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         const maxPlayersPerLobby = config.lobbies[lobby].maxPlayers;
@@ -28,6 +28,7 @@ module.exports = {
         let tracks = "";
         let usersAndFlags = new Map();
         let playersRank = [];
+        let queuePlayers = new Map();
 
         let lobbyNumber = await lobbyUtils.saveLobby(lobby, [], 0, 0);        
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
@@ -88,6 +89,13 @@ module.exports = {
                             lobbyMatch: null
                         }, { lobbyMatch: lobbyNumber }).exec();
                     }
+                    else {
+                        queuePlayers.set(user.id, await lobbyUtils.getPlayerAndFlag(user));
+                        await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, Array.from(queuePlayers.values()));
+                        let aux = await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, Array.from(queuePlayers.values()));
+                        tracks = aux.tracks;
+                        futureTask = aux.futureTask;
+                    }
                 }
             } catch(err) { console.log(err); }
         });
@@ -105,7 +113,7 @@ module.exports = {
                     futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
                 }
             }
-            else {
+            else if(usersAndFlags.has(user.id)) { // belongs to a team
                 let team = await teamUtils.getTeamMembers(user.id);
                 if(team == null) { return; }
 
@@ -128,6 +136,10 @@ module.exports = {
                     discordPartnersIds: message.author.id,
                     lobbyMatch: lobbyNumber
                 }, { lobbyMatch: null }).exec();
+            }
+            else { // is signed in the queue players
+                queuePlayers.delete(user.id);
+                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, Array.from(queuePlayers.values()));
             }
         });
 

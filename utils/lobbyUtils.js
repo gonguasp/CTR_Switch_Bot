@@ -182,48 +182,18 @@ exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
     return numMatch;             
 }
 
-exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed) {
-    let playerRankString = "";
-    let usersString = "";
-    usersAndFlags.forEach(element => usersString += element);
-    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
-    let averageRank = await rankUtils.calculateAverageRank(playersRank);
-
-    const newEmbed = new Discord.MessageEmbed()
-        .setColor(color)
-        .setTitle(title);
-        
-
-    if(usersString != "") {
-        newEmbed.addField("\nPlayers", usersString, true)
-                .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
-                .addField("\nAverage rank", averageRank, true);
-    }
-
-    newEmbed.addField("Time", time, true);
-
-    if(usersAndFlags.size >= minPlayersPerLobby) {
-        if(tracks != "") {
-            newEmbed.addField("Tracks", tracks, true);
-        }        
-        futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
-        futureTask.first.start();
-        futureTask.second.start();
-    }
-    else if(futureTask != undefined) {
-        futureTask.first.destroy();
-        futureTask.second.destroy();
-    }
-
-    messageEmbed.edit(newEmbed);
-    return futureTask;
+exports.getPlayerAndFlag = async function (user) {
+    let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    return player.flag + " <@" + user.id + ">";
 }
 
-exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask) {
+exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, queuePlayers) {
     if(await this.isRegistered(user)) {
-        let playerRank = await rankUtils.findPlayerRank(user);
-        playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
-        usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
+        if(queuePlayers == undefined) {
+            let playerRank = await rankUtils.findPlayerRank(user);
+            playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
+            usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
+        }
         if(!config.lobbies[lobby].team) {
             let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask);
             tracks = result.tracks;
@@ -247,22 +217,30 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
     return { playersRank, usersAndFlags, tracks, futureTask };
 }
 
-exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask) {
-
+exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayers) {
     let playerRankString = "";
     let usersString = "";
-
-    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
     usersAndFlags.forEach(element => usersString += element); 
-    let averageRank = rankUtils.calculateAverageRank(playersRank);
+    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+    let averageRank = await rankUtils.calculateAverageRank(playersRank);
 
     const newEmbed = new Discord.MessageEmbed()
         .setColor(color)
-        .setTitle(title)
-        .addField("\nPlayers", usersString, true)
-        .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
-        .addField("\nAverage rank", averageRank, true)
-        .addField("Time", time, true);
+        .setTitle(title);
+    
+    if(usersString != "") {
+        newEmbed.addField("\nPlayers", usersString, true)
+            .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
+            .addField("\nAverage rank", averageRank, true);
+    }
+    if(queuePlayers != undefined && queuePlayers.length > 0) {
+        let queuePlayersString = "";
+        for(let queuePlayer of queuePlayers) {
+            queuePlayersString += queuePlayer + "\n";
+        }
+        newEmbed.addField("Queue players", queuePlayersString);
+    }
+    newEmbed.addField("Time", time, true)
 
     if(usersAndFlags.size <= maxPlayersPerLobby) {
         lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
@@ -283,6 +261,51 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
     }
 
     return { tracks, futureTask };
+}
+
+exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, queuePlayers) {
+    let playerRankString = "";
+    let usersString = "";
+    let averageRank = 0;
+    if(usersAndFlags.length > 0) {
+        usersAndFlags.forEach(element => usersString += element); 
+        playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+        averageRank = await rankUtils.calculateAverageRank(playersRank);
+    }
+    
+    const newEmbed = new Discord.MessageEmbed()
+        .setColor(color)
+        .setTitle(title);
+
+    if(usersString != "") {
+        newEmbed.addField("\nPlayers", usersString, true)
+                .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
+                .addField("\nAverage rank", averageRank, true);
+    }
+    if(queuePlayers != undefined && queuePlayers.length > 0) {
+        let queuePlayersString = "";
+        for(let queuePlayer of queuePlayers) {
+            queuePlayersString += queuePlayer + "\n";
+        }
+        newEmbed.addField("Queue players", queuePlayersString);
+    }
+    newEmbed.addField("Time", time, true);
+
+    if(usersAndFlags.size >= minPlayersPerLobby) {
+        if(tracks != "") {
+            newEmbed.addField("Tracks", tracks, true);
+        }        
+        futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
+        futureTask.first.start();
+        futureTask.second.start();
+    }
+    else if(futureTask != undefined) {
+        futureTask.first.destroy();
+        futureTask.second.destroy();
+    }
+
+    messageEmbed.edit(newEmbed);
+    return futureTask;
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
@@ -317,7 +340,7 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
         }
     }
     else {
-        
+
     }
 
     const scoresTemplateEmbed = new Discord.MessageEmbed()
