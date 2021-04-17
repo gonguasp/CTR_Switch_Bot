@@ -106,7 +106,6 @@ editEmbedGlobalResults = async function (message) {
     let messageDescription = "Message id of global rank";
     let messageSchema = await ParametersSchema.findOne({ description: messageDescription }).exec();
     let channel = utils.getChannelByName(message, config.globalRankChannel);
-
     let embed = await getGlobalRankEmbed();
 
     if(messageSchema == null || messageSchema == undefined) {
@@ -134,46 +133,28 @@ async function getGlobalRankEmbed() {
     for(let lobbyModality of lobbiesNames) {
         let rankModality = config.lobbies[lobbyModality].rankName;
         let fields = {};
-        fields[rankModality] = 1;
-        fields[rankModality + "Played"] = 1;
-        fields[rankModality + "Won"] = 1;
         fields["playerName"] = 1;
-        let short = {};
-        short[rankModality] = -1;
         
         let players;
         if(rankModality == "ffa") {
-            players = await RankSchema.find({ ffaPlayed: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ ffaPlayed: { $ne: 0 } }, fields );
         }
         else if(rankModality == "duos") {
-            players = await RankSchema.find({ duosPlayed: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ duosPlayed: { $ne: 0 } }, fields );
         }
         else if(rankModality == "war3vs3") {
-            players = await RankSchema.find({ war3vs3Played: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ war3vs3Played: { $ne: 0 } }, fields );
         }
         else if(rankModality == "war4vs4") {
-            players = await RankSchema.find({ war4vs4Played: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ war4vs4Played: { $ne: 0 } }, fields );
         }
         else if(rankModality == "itemless") {
-            players = await RankSchema.find({ itemlessPlayed: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ itemlessPlayed: { $ne: 0 } }, fields );
         }
-        let rankPlayers = [];
         
-        for(let player of players) {
-            let p = [];
-            p.push(player[rankModality]);
-            p.push(player[rankModality + "Played"]);
-            p.push(player[rankModality + "Won"]);
-            p.push(player["playerName"]);
-            rankPlayers.push(p);
-        }
-        let globalRank = {
-            modality: rankModality,
-            players: rankPlayers
-        };
-        
-        let info = rankPlayers.length + " players fighting for the #1"
-        embed.addField("Global " + rankModality + " rank", "\n[" + info + "](https://mural.uv.es/gonguasp/showRanked.html?data=" + encodeURI(JSON.stringify(globalRank)).replaceAll("#", "%23") + ")", true);
+        let info = players.length + " players fighting for the #1";
+        let url = (await ParametersSchema.findOne({ description: "server-global-rank" }).exec()).name;
+        embed.addField("Global " + rankModality + " rank", "\n[" + info + "](" + url + "/"+ rankModality + ")", true);
     }
 
     return embed;

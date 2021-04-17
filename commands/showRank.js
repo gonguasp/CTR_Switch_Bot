@@ -1,6 +1,7 @@
 const RankSchema = require('@models/RankSchema.js');
 const Discord = require("discord.js");
 const rankUtils = require('@utils/rankUtils.js');
+const lobbyUtils = require('@utils/lobbyUtils.js');
 
 module.exports = {
     name: "rank",
@@ -43,5 +44,19 @@ module.exports = {
         embed.setTitle(rank.playerName + "'s rank");
 
         message.channel.send(embed);
+
+        /*let usersId = [
+                    ];
+        let queueUsersId = ["602852862094999552", "721250306565996584",
+        "666879541695741952", "757130269005316147","636723092076363796", "173004453581029377", "621686472872820736", "712342385463394456"];
+        let numMatch = 0;
+        //console.log(await lobbyUtils.generateScoresTemplate("Duos", usersId, queueUsersId, numMatch));
+        //message.channel.send(await lobbyUtils.generateScoresTemplate("Duos", usersId, queueUsersId, numMatch));
+        //usersId = [];
+        //console.log(await lobbyUtils.generateScoresTemplate("3 - 3 vs", usersId, queueUsersId, numMatch));
+        message.channel.send(await lobbyUtils.generateScoresTemplate("3 - 3 vs", usersId, queueUsersId, numMatch));
+        //usersId = [1,2,3,4];
+        //console.log(await lobbyUtils.generateScoresTemplate("4 - 4 vs", usersId, queueUsersId, numMatch));
+        //message.channel.send(await lobbyUtils.generateScoresTemplate("4 - 4 vs", usersId, queueUsersId, numMatch));*/
     }
 }

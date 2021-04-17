@@ -145,8 +145,8 @@ module.exports = {
 
         collector.on('end', async (reaction, user) => {
             let messagesArray = [messageEmbed, rankedMessage];
-            if(Array.from(usersAndFlags.keys()).length >= minPlayersPerLobby) {
-                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
+            if((Array.from(usersAndFlags.keys()).length + Array.from(queuePlayers.keys()).length ) >= minPlayersPerLobby) {
+                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), Array.from(queuePlayers.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
             }
             else {
                 messagesArray.forEach(element => { element.delete(); });
