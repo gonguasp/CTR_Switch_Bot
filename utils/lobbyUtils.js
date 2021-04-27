@@ -127,8 +127,11 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
     if(futureTask != undefined) {
         futureTask.first.destroy();
         futureTask.second.destroy();
-        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
-        
+        if(queueUsers != undefined) {
+            users = users.concat(queueUsers);
+        }
+
+        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));        
         let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, numMatch));
         lobbyChannel.send(scoresTemplate);
     }
@@ -156,7 +159,7 @@ exports.isRegistered = async function (user) {
 }
 
 exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
-    
+
     if(numMatch == 0) {
         await MatchSchema.where({}).countDocuments(function(err, count) {
             if(err) { console.log(err); return; }
@@ -169,7 +172,7 @@ exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
         matchNumber: numMatch,
         lobbyModality: lobby,
         players: await getPlayersInfo(users),
-        averageRank: averageRank
+        averageRank: Number.isNaN(averageRank) ? 1200 : averageRank
     };
     let filter = { matchNumber: numMatch };
     let options = {
@@ -199,6 +202,11 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
             tracks = result.tracks;
             futureTask = result.futureTask;
         }
+        else {
+            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayers);
+            tracks = result.tracks;
+            futureTask = result.futureTask;
+        }
     }
     else {
         await reaction.users.remove(user.id);
@@ -217,7 +225,11 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
     return { playersRank, usersAndFlags, tracks, futureTask };
 }
 
-exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayers) {
+exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayersMap) {
+    let queuePlayers;
+    if(queuePlayersMap != undefined) {
+        queuePlayers = Array.from(queuePlayersMap.values());
+    }
     let playerRankString = "";
     let usersString = "";
     usersAndFlags.forEach(element => usersString += element); 
@@ -244,12 +256,17 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
 
     if(usersAndFlags.size <= maxPlayersPerLobby) {
         lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
-        if(usersAndFlags.size >= minPlayersPerLobby) {
+        if((usersAndFlags.size + queuePlayers != undefined ? queuePlayers.length : 0) >= minPlayersPerLobby) {
             if(tracks == "") {
                 tracks = this.genTracks(numTracks);
             }
             newEmbed.addField("Tracks", tracks, true);
-            futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
+            let players = Array.from(usersAndFlags.keys());
+            if(queuePlayers != undefined && queuePlayers.length) {
+                players = players.concat(Array.from(queuePlayersMap.keys()));
+            }
+
+            futureTask = this.scheduleLobbyNotification(lobby, futureTask, players, this.parseTime(time), message, notifications);
             futureTask.first.start();
             futureTask.second.start();
         }

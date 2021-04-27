@@ -16,7 +16,9 @@ const playerSchema = new mongoose.Schema({
   favCharacter: { type: String, require: false },
   favTrack: { type: String, require: false },
   updated: { type: Date, default: Date.now },
-  created: { type: Date, default: Date.now }
+  created: { type: Date, default: Date.now },
+  bannedUntil: { type: Date, require: false },
+  bannedReason: { type: String, require: false }
 });
 
 const model = mongoose.model("PlayerSchema", playerSchema);

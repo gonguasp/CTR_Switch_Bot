@@ -57,6 +57,13 @@ module.exports = {
 
         collector.on('collect', async (reaction, user) => {
             try {
+                let banneds = [];
+                if((banneds = await utils.getBanneds([user.id])).length != 0) {
+                    await reaction.users.remove(user.id);
+                    user.send("You are banned and cant join in this moment to a lobby:\n" + JSON.stringify(banneds, null, '\t\t').replaceAll("\"", ""));
+                    return;
+                }
+
                 if(!config.lobbies[lobby].team) {
                     let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask);
                     playersRank = aux.playersRank;
@@ -91,8 +98,7 @@ module.exports = {
                     }
                     else {
                         queuePlayers.set(user.id, await lobbyUtils.getPlayerAndFlag(user));
-                        await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, Array.from(queuePlayers.values()));
-                        let aux = await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, Array.from(queuePlayers.values()));
+                        let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, queuePlayers);
                         tracks = aux.tracks;
                         futureTask = aux.futureTask;
                     }
@@ -137,7 +143,7 @@ module.exports = {
                     lobbyMatch: lobbyNumber
                 }, { lobbyMatch: null }).exec();
             }
-            else { // is signed in the queue players
+            else { // the player is signed in the queue players
                 queuePlayers.delete(user.id);
                 futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, Array.from(queuePlayers.values()));
             }

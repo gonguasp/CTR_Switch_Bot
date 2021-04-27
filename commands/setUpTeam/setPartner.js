@@ -1,6 +1,7 @@
 require("module-alias/register");
 
 const teamUtils = require('@utils/teamUtils.js');
+const utils = require('@utils/utils.js');
 const config = require('@config');
 
 module.exports = {
@@ -21,6 +22,14 @@ module.exports = {
 
         if(args.length > 3) {
             message.reply("you can not create a team with more than 4 members.");
+            return;
+        }
+
+        let ids = [message.author.id];
+        ids.concat(Array.from(message.mentions.users.keys()));
+        let banneds = [];
+        if((banneds = await utils.getBanneds(ids)).length != 0) {
+            message.channel.send("Some player/s of that team is/are banned:\n" + JSON.stringify(banneds, null, '\t\t').replaceAll("\"", ""));
             return;
         }
 

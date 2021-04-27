@@ -87,7 +87,6 @@ exports.processIfRankedResults = async function(message) {
         }).catch(console.error);
     }
     message.delete();
-
 }
 
 exports.updateGlobalResults = async function (message) {

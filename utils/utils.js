@@ -5,6 +5,7 @@ const flags = require('@flags');
 const Discord = require("discord.js");
 const fs = require("fs");
 const MatchSchema = require('@models/MatchSchema.js');
+const PlayerSchema = require('@models/PlayerSchema.js');
 
 exports.readCommands = function(client) {
     
@@ -136,4 +137,42 @@ exports.sendRandomMeme = function (member) {
     } catch (err) {
         console.log(err);
     }
+}
+
+exports.setBan = async function (userId, numDays, reason) {
+    let date = new Date();
+    date.setDate(date.getDate() + parseInt(numDays));
+    let filter = { discordId: userId };
+    let update = {
+        bannedReason: reason,
+        bannedUntil: date
+    };
+    await PlayerSchema.where(filter).updateOne(update).exec();    
+}
+
+exports.showBans = async function (filter) {
+    let filterLocal = filter == undefined ? { bannedUntil: { $gt: new Date() }} : filter;
+    let bans = await PlayerSchema.find(filterLocal, { discordUserName: 1, playerName: 1, bannedUntil: 1, bannedReason: 1 });
+    let baneos = [];
+    for(let i = 0; i < bans.length; i++) {
+        let ban = {};
+        ban.discordUserName = bans[i].discordUserName;
+        ban.playerName = bans[i].playerName;
+        ban.bannedUntil = bans[i].bannedUntil;
+        ban.bannedReason = bans[i].bannedReason;
+        baneos.push(ban);
+    }
+    return baneos;
+}
+
+exports.getBanneds = async function (ids) {
+    let banneds = [];
+    for(let id of ids) {
+        let filter = { discordId: id, bannedUntil: { $gt: new Date() }};
+        let ban = (await this.showBans(filter))[0];
+        if(ban != undefined) {
+            banneds.push(ban);
+        }
+    }
+    return banneds;
 }
