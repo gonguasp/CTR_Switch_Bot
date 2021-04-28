@@ -256,6 +256,7 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
 
     if(usersAndFlags.size <= maxPlayersPerLobby) {
         lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
+        if(queuePlayers == undefined) { queuePlayers = []; }
         if((usersAndFlags.size + queuePlayers != undefined ? queuePlayers.length : 0) >= minPlayersPerLobby) {
             if(tracks == "") {
                 tracks = this.genTracks(numTracks);
