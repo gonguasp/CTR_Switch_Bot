@@ -64,17 +64,39 @@ exports.processIfRankedResults = async function(message) {
     if(message.channel != channel || message.author.bot) { return; }
     let info = await isValidResult(message.content);
     if(info.valid && info.rankedInfo.scores == undefined) {
-        let modality = info.rankedInfo.lobbyModality.toLowerCase();
-        let contentPlayers = await getPlayersFromContent(message.content);
-        if(allPlayersExist(message, contentPlayers)) {
-            let winnersLosers = getWinnersLosers(contentPlayers, message.content);
-            let rankedResults = await calculateRanks(winnersLosers, info.rankedInfo);    
-            let sanctions = await getSanctionedPlayers(contentPlayers, info.rankedInfo.players, modality);
-            rankedResults = rankedResults.concat(sanctions);
-            message.channel.send("\nMatch #" + info.rankedInfo.matchNumber + "\n\n```" + pretyPrint(rankedResults) + "```");
-            await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
-            await editEmbedGlobalResults(message);
-        }
+        try {
+            let modality = config.lobbies[info.rankedInfo.lobbyModality].rankName;
+            let contentPlayers = await getPlayersFromContent(message.content);
+            if(allPlayersExist(message, contentPlayers)) {
+                if(!config.lobbies[info.rankedInfo.lobbyModality].team) {    
+                    let winnersLosers = getWinnersLosers(contentPlayers, message.content);
+                    let rankedResults = await calculateRanks(winnersLosers, info.rankedInfo);    
+                    let sanctions = await getSanctionedPlayers(contentPlayers, info.rankedInfo.players, modality);
+                    rankedResults = rankedResults.concat(sanctions);
+                    message.channel.send("\nMatch #" + info.rankedInfo.matchNumber + "\n\n```" + pretyPrint(rankedResults) + "```");
+                    await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
+                    await editEmbedGlobalResults(message);
+                }
+                else {
+                    let teamsSplited = getTeams(message.content);
+                    let winnersLosers = getWinnersLosersTeams(teamsSplited);
+                    let winnersLosersIndividuals = getTeamsWinnersLosers(winnersLosers);
+
+                    for(let i = 0; i < contentPlayers.length; i++) {
+                        winnersLosersIndividuals[i].info = {};
+                        winnersLosersIndividuals[i].info.discordId = contentPlayers[i].discordId;
+                        winnersLosersIndividuals[i].info.playerName = winnersLosersIndividuals[i].player;
+                    }
+
+                    let rankedResults = await calculateRanks(winnersLosersIndividuals, info.rankedInfo);    
+                    let sanctions = await getSanctionedPlayers(contentPlayers, info.rankedInfo.players, modality);
+                    rankedResults = rankedResults.concat(sanctions);
+                    message.channel.send("\nMatch #" + info.rankedInfo.matchNumber + "\n\n```" + pretyPrint(rankedResults) + "```");
+                    await saveRankedResults(rankedResults, modality, message.content, info.rankedInfo.matchNumber);
+                    await editEmbedGlobalResults(message);
+                }
+            }
+        } catch (err) { console.log(err); }
     }
     else if(info.valid && (info != undefined || info.rankedInfo != undefined || info.rankedInfo.scores != undefined)) {
         message.reply("that match already has final scores").then(msg => {
@@ -87,7 +109,6 @@ exports.processIfRankedResults = async function(message) {
         }).catch(console.error);
     }
     message.delete();
-
 }
 
 exports.updateGlobalResults = async function (message) {
@@ -102,11 +123,62 @@ exports.updateGlobalResults = async function (message) {
 /////////////////////////////////////// PRIVATE FUNCTIONS
 
 
-editEmbedGlobalResults = async function (message) {
+
+function getWinnersLosersTeams(teams) {
+    let winnersLosers = {};
+    for(let i = 1; i <= teams.length; i++) {
+        let totalPoints = sumPoints(teams[i - 1]);
+        for(let j = 1; j <= teams[i - 1].length; j++) {
+            winnersLosers[i * 5 + j] = {
+                player: getMembers(teams[i - 1]).split(",")[j - 1],
+                points: totalPoints
+            };
+        }
+    }
+
+    return winnersLosers;
+}
+
+function getMembers(team) {
+    let members = [];
+
+    for(let member of team) {
+        members.push(member.split(" [")[0]);
+    }
+
+    return members.join(",");
+}
+
+function sumPoints(team) {
+    let points = 0;
+    for(let member of team) {
+        let pointsString = member.split("] ")[1];
+        pointsString = pointsString.split("|");
+        points += pointsString.reduce((a, b) => (parseInt(a) + parseInt(b)), 0);
+    }
+
+    return points;
+}
+
+
+function getTeams(scoresTemplate) {
+    let teams = scoresTemplate.split("\n\n");
+    teams.shift();
+    let teamsSplited = [];
+
+    for(let team of teams) {
+        team = team.split("\n");
+        team.shift();
+        teamsSplited.push(team);
+    }
+
+    return teamsSplited;
+}
+
+async function editEmbedGlobalResults(message) {
     let messageDescription = "Message id of global rank";
     let messageSchema = await ParametersSchema.findOne({ description: messageDescription }).exec();
     let channel = utils.getChannelByName(message, config.globalRankChannel);
-
     let embed = await getGlobalRankEmbed();
 
     if(messageSchema == null || messageSchema == undefined) {
@@ -134,46 +206,28 @@ async function getGlobalRankEmbed() {
     for(let lobbyModality of lobbiesNames) {
         let rankModality = config.lobbies[lobbyModality].rankName;
         let fields = {};
-        fields[rankModality] = 1;
-        fields[rankModality + "Played"] = 1;
-        fields[rankModality + "Won"] = 1;
         fields["playerName"] = 1;
-        let short = {};
-        short[rankModality] = -1;
         
         let players;
         if(rankModality == "ffa") {
-            players = await RankSchema.find({ ffaPlayed: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ ffaPlayed: { $ne: 0 } }, fields );
         }
         else if(rankModality == "duos") {
-            players = await RankSchema.find({ duosPlayed: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ duosPlayed: { $ne: 0 } }, fields );
         }
         else if(rankModality == "war3vs3") {
-            players = await RankSchema.find({ war3vs3Played: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ war3vs3Played: { $ne: 0 } }, fields );
         }
         else if(rankModality == "war4vs4") {
-            players = await RankSchema.find({ war4vs4Played: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ war4vs4Played: { $ne: 0 } }, fields );
         }
         else if(rankModality == "itemless") {
-            players = await RankSchema.find({ itemlessPlayed: { $ne: 0 } }, fields ).sort(short);
+            players = await RankSchema.find({ itemlessPlayed: { $ne: 0 } }, fields );
         }
-        let rankPlayers = [];
         
-        for(let player of players) {
-            let p = [];
-            p.push(player[rankModality]);
-            p.push(player[rankModality + "Played"]);
-            p.push(player[rankModality + "Won"]);
-            p.push(player["playerName"]);
-            rankPlayers.push(p);
-        }
-        let globalRank = {
-            modality: rankModality,
-            players: rankPlayers
-        };
-        
-        let info = rankPlayers.length + " players fighting for the #1"
-        embed.addField("Global " + rankModality + " rank", "\n[" + info + "](https://mural.uv.es/gonguasp/showRanked.html?data=" + encodeURI(JSON.stringify(globalRank)).replaceAll("#", "%23") + ")", true);
+        let info = players.length + " players fighting for the #1";
+        let url = (await ParametersSchema.findOne({ description: "server-global-rank" }).exec()).name;
+        embed.addField("Global " + rankModality + " rank", "\n[" + info + "](" + url + "/"+ rankModality + ")", true);
     }
 
     return embed;
@@ -277,19 +331,19 @@ async function calculateRanks(winnersLosers, rankedInfo) {
     };
     extraPoints = extraPoints[winnersLosers.length];
     let rankedResults = [];
-    let modality = rankedInfo.lobbyModality.toLowerCase();
+    let modality = config.lobbies[rankedInfo.lobbyModality].rankName;
     let averageRank = await calculateAverageRank(winnersLosers, modality);
 
     for(let i = 0; i < winnersLosers.length; i++) {
         let playerRank = await getPlayerRank(winnersLosers[i].info.discordId);
         let probabilityWins = 1 / (1 + Math.pow(10, ((averageRank - playerRank[modality]) / 400)));
         let eloRating = parseInt(config.ELOrankConstK * (parseInt(winnersLosers[i].wins ? 1 : 0) - parseFloat(probabilityWins).toFixed(2)));
-        let rating = playerRank[modality] + eloRating + extraPoints[i];
+        let rating = playerRank[modality] + eloRating + parseInt((config.lobbies[rankedInfo.lobbyModality].team ? 0 : extraPoints[i]));
         let playerRanked = {
             discordId: winnersLosers[i].info.discordId,
             playerName: winnersLosers[i].info.playerName ? winnersLosers[i].info.playerName : winnersLosers[i].info.discordUserName,
             previusRank: playerRank[modality],
-            rankChange: winnersLosers[i].tie ? "  0 +0" : (extraPoints[i] > 0 ? " " : "") + eloRating + ((winnersLosers.length == 8 && i != 0 && i != 7) ? " " : "") + (extraPoints[i] > 0 ? " +" : " ") + extraPoints[i],
+            rankChange: config.lobbies[rankedInfo.lobbyModality].team ? eloRating : winnersLosers[i].tie ? "  0 +0" : (extraPoints[i] > 0 ? " " : "") + eloRating + ((winnersLosers.length == 8 && i != 0 && i != 7) ? " " : "") + (extraPoints[i] > 0 ? " +" : " ") + extraPoints[i],
             currentRank: winnersLosers[i].tie ? playerRank[modality] : parseInt(rating)
         };
 
@@ -333,6 +387,15 @@ function getWinnersLosers(players, scoreTable) {
             flagNoWinNoLose = false;
             winnersLosers[i].tie = true;
         }
+    }
+
+    return winnersLosers;    
+}
+
+function getTeamsWinnersLosers(winnersLosers) {
+    winnersLosers = Object.values(winnersLosers).sort((a,b) => (a.points < b.points) ? 1 : ((b.points < a.points) ? -1 : 0));
+    for(let i = 0; i < winnersLosers.length; i++) {
+        winnersLosers[i].wins = (winnersLosers.length / (i + 1)) >= 2;
     }
 
     return winnersLosers;    

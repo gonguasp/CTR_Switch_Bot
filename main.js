@@ -14,6 +14,7 @@ client.commands = utils.readCommands(client);
 client.on("message", message => {
     let command;
     try {
+        if(message.content.startsWith("! ")) { message.reply("you have to write the command just before the prefix ! without spaces"); return; }
         if(message.guild != null) { rankUtils.processIfRankedResults(message); }
         if(!message.content.startsWith(config.prefix) || message.author.bot) { return; }
 

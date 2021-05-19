@@ -13,7 +13,7 @@ module.exports = {
     public: false,
     async execute(message, lobby, Discord, client, args) {
         const numTracks = config.lobbies[lobby].numRaces;
-        const time = args != "" ? args : "4 pm Mexico\n6 pm New York\n12 am Madrid\n5 am Jakarta\n";
+        const time = args != "" ? args : "5 pm Mexico\n6 pm New York\n12 am Madrid\n5 am Jakarta\n";
         const title = ":bust_in_silhouette:    New ranked " + lobby + " lobby";
         const color = "#FFFFFF";
         const maxPlayersPerLobby = config.lobbies[lobby].maxPlayers;
@@ -28,6 +28,7 @@ module.exports = {
         let tracks = "";
         let usersAndFlags = new Map();
         let playersRank = [];
+        let queuePlayers = new Map();
 
         let lobbyNumber = await lobbyUtils.saveLobby(lobby, [], 0, 0);        
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
@@ -56,6 +57,13 @@ module.exports = {
 
         collector.on('collect', async (reaction, user) => {
             try {
+                let banneds = [];
+                if((banneds = await utils.getBanneds([user.id])).length != 0) {
+                    await reaction.users.remove(user.id);
+                    user.send("You are banned and cant join in this moment to a lobby:\n" + JSON.stringify(banneds, null, '\t\t').replaceAll("\"", ""));
+                    return;
+                }
+
                 if(!config.lobbies[lobby].team) {
                     let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask);
                     playersRank = aux.playersRank;
@@ -88,6 +96,12 @@ module.exports = {
                             lobbyMatch: null
                         }, { lobbyMatch: lobbyNumber }).exec();
                     }
+                    else {
+                        queuePlayers.set(user.id, await lobbyUtils.getPlayerAndFlag(user));
+                        let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, queuePlayers);
+                        tracks = aux.tracks;
+                        futureTask = aux.futureTask;
+                    }
                 }
             } catch(err) { console.log(err); }
         });
@@ -105,7 +119,7 @@ module.exports = {
                     futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
                 }
             }
-            else {
+            else if(usersAndFlags.has(user.id)) { // belongs to a team
                 let team = await teamUtils.getTeamMembers(user.id);
                 if(team == null) { return; }
 
@@ -129,12 +143,16 @@ module.exports = {
                     lobbyMatch: lobbyNumber
                 }, { lobbyMatch: null }).exec();
             }
+            else { // the player is signed in the queue players
+                queuePlayers.delete(user.id);
+                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, Array.from(queuePlayers.values()));
+            }
         });
 
         collector.on('end', async (reaction, user) => {
             let messagesArray = [messageEmbed, rankedMessage];
-            if(Array.from(usersAndFlags.keys()).length >= minPlayersPerLobby) {
-                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
+            if((Array.from(usersAndFlags.keys()).length + Array.from(queuePlayers.keys()).length ) >= minPlayersPerLobby) {
+                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), Array.from(queuePlayers.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
             }
             else {
                 messagesArray.forEach(element => { element.delete(); });

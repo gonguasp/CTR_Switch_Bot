@@ -122,14 +122,17 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, tracks, lobby, averageRank, numMatch) {
+exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, queueUsers, tracks, lobby, averageRank, numMatch) {
     deleteMessageInFuture(messagesArray, deleteMessageInHours);
     if(futureTask != undefined) {
         futureTask.first.destroy();
         futureTask.second.destroy();
-        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));
-        
-        let scoresTemplate = await generateScoresTemplate(lobby, users, await this.saveLobby(lobby, users, averageRank, numMatch));
+        if(queueUsers != undefined) {
+            users = users.concat(queueUsers);
+        }
+
+        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));        
+        let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, numMatch));
         lobbyChannel.send(scoresTemplate);
     }
 }
@@ -156,7 +159,7 @@ exports.isRegistered = async function (user) {
 }
 
 exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
-    
+
     if(numMatch == 0) {
         await MatchSchema.where({}).countDocuments(function(err, count) {
             if(err) { console.log(err); return; }
@@ -169,7 +172,7 @@ exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
         matchNumber: numMatch,
         lobbyModality: lobby,
         players: await getPlayersInfo(users),
-        averageRank: averageRank
+        averageRank: Number.isNaN(averageRank) ? 1200 : averageRank
     };
     let filter = { matchNumber: numMatch };
     let options = {
@@ -182,50 +185,25 @@ exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
     return numMatch;             
 }
 
-exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed) {
-    let playerRankString = "";
-    let usersString = "";
-    usersAndFlags.forEach(element => usersString += element);
-    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");          
-    let averageRank = await rankUtils.calculateAverageRank(playersRank);
-
-    const newEmbed = new Discord.MessageEmbed()
-        .setColor(color)
-        .setTitle(title);
-        
-
-    if(usersString != "") {
-        newEmbed.addField("\nPlayers", usersString, true)
-                .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
-                .addField("\nAverage rank", averageRank, true);
-    }
-
-    newEmbed.addField("Time", time, true);
-
-    if(usersAndFlags.size >= minPlayersPerLobby) {
-        if(tracks != "") {
-            newEmbed.addField("Tracks", tracks, true);
-        }        
-        futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
-        futureTask.first.start();
-        futureTask.second.start();
-    }
-    else if(futureTask != undefined) {
-        futureTask.first.destroy();
-        futureTask.second.destroy();
-    }
-
-    messageEmbed.edit(newEmbed);
-    return futureTask;
+exports.getPlayerAndFlag = async function (user) {
+    let player = await PlayerSchema.findOne({ discordId: user.id }).exec();
+    return player.flag + " <@" + user.id + ">";
 }
 
-exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask) {
+exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, queuePlayers) {
     if(await this.isRegistered(user)) {
-        let playerRank = await rankUtils.findPlayerRank(user);
-        playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
-        usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
+        if(queuePlayers == undefined) {
+            let playerRank = await rankUtils.findPlayerRank(user);
+            playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
+            usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
+        }
         if(!config.lobbies[lobby].team) {
             let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask);
+            tracks = result.tracks;
+            futureTask = result.futureTask;
+        }
+        else {
+            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayers);
             tracks = result.tracks;
             futureTask = result.futureTask;
         }
@@ -247,31 +225,49 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
     return { playersRank, usersAndFlags, tracks, futureTask };
 }
 
-exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask) {
-
+exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayersMap) {
+    let queuePlayers;
+    if(queuePlayersMap != undefined) {
+        queuePlayers = Array.from(queuePlayersMap.values());
+    }
     let playerRankString = "";
     let usersString = "";
-
-    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
     usersAndFlags.forEach(element => usersString += element); 
-    let averageRank = rankUtils.calculateAverageRank(playersRank);
+    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+    let averageRank = await rankUtils.calculateAverageRank(playersRank);
 
     const newEmbed = new Discord.MessageEmbed()
         .setColor(color)
-        .setTitle(title)
-        .addField("\nPlayers", usersString, true)
-        .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
-        .addField("\nAverage rank", averageRank, true)
-        .addField("Time", time, true);
+        .setTitle(title);
+    
+    if(usersString != "") {
+        newEmbed.addField("\nPlayers", usersString, true)
+            .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
+            .addField("\nAverage rank", averageRank, true);
+    }
+    if(queuePlayers != undefined && queuePlayers.length > 0) {
+        let queuePlayersString = "";
+        for(let queuePlayer of queuePlayers) {
+            queuePlayersString += queuePlayer + "\n";
+        }
+        newEmbed.addField("Queue players", queuePlayersString);
+    }
+    newEmbed.addField("Time", time, true)
 
     if(usersAndFlags.size <= maxPlayersPerLobby) {
         lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
-        if(usersAndFlags.size >= minPlayersPerLobby) {
+        if(queuePlayers == undefined) { queuePlayers = []; }
+        if((usersAndFlags.size + queuePlayers != undefined ? queuePlayers.length : 0) >= minPlayersPerLobby) {
             if(tracks == "") {
                 tracks = this.genTracks(numTracks);
             }
             newEmbed.addField("Tracks", tracks, true);
-            futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
+            let players = Array.from(usersAndFlags.keys());
+            if(queuePlayers != undefined && queuePlayers.length) {
+                players = players.concat(Array.from(queuePlayersMap.keys()));
+            }
+
+            futureTask = this.scheduleLobbyNotification(lobby, futureTask, players, this.parseTime(time), message, notifications);
             futureTask.first.start();
             futureTask.second.start();
         }
@@ -283,6 +279,51 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
     }
 
     return { tracks, futureTask };
+}
+
+exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, queuePlayers) {
+    let playerRankString = "";
+    let usersString = "";
+    let averageRank = 0;
+    if(usersAndFlags.size > 0) {
+        usersAndFlags.forEach(element => usersString += element); 
+        playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+        averageRank = await rankUtils.calculateAverageRank(playersRank);
+    }
+    
+    const newEmbed = new Discord.MessageEmbed()
+        .setColor(color)
+        .setTitle(title);
+
+    if(usersString != "") {
+        newEmbed.addField("\nPlayers", usersString, true)
+                .addField("\nIDs & Ranks", "```" + playerRankString + "```", true)
+                .addField("\nAverage rank", averageRank, true);
+    }
+    if(queuePlayers != undefined && queuePlayers.length > 0) {
+        let queuePlayersString = "";
+        for(let queuePlayer of queuePlayers) {
+            queuePlayersString += queuePlayer + "\n";
+        }
+        newEmbed.addField("Queue players", queuePlayersString);
+    }
+    newEmbed.addField("Time", time, true);
+
+    if(usersAndFlags.size >= minPlayersPerLobby) {
+        if(tracks != "") {
+            newEmbed.addField("Tracks", tracks, true);
+        }        
+        futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
+        futureTask.first.start();
+        futureTask.second.start();
+    }
+    else if(futureTask != undefined) {
+        futureTask.first.destroy();
+        futureTask.second.destroy();
+    }
+
+    messageEmbed.edit(newEmbed);
+    return futureTask;
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
@@ -303,7 +344,11 @@ function deleteMessageInFuture(messagesArray, hours) {
     }).start();
 }
 
-async function generateScoresTemplate(lobby, usersId, numMatch) {
+exports.generateScoresTemplate = async function (lobby, usersId, queueUsersId, numMatch) {
+    return await generateScoresTemplate(lobby, usersId, queueUsersId, numMatch);
+}
+
+async function generateScoresTemplate(lobby, usersId, queueUsersId, numMatch) {
     const ceros = getScoresTemplateCeros(lobby) + "\n";
     let template = "Match #" + numMatch + "# - " + lobby + "\n\n";
 
@@ -317,7 +362,19 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
         }
     }
     else {
+        usersId = getFinalPlayers(usersId, queueUsersId, lobby);
+        let teams = await formTeams(usersId, queueUsersId, lobby);
         
+        for(let i = 0; i < teams.length; i++) {
+            template += "\n" + config.teamNames[i] + "\n";
+            for(let userId of teams[i]) {
+                let playerInfo = await getPlayerInfo(userId);
+                let username = playerInfo.discordUserName.substring(config.maxCharacersPlayerName, 0).padEnd(config.maxCharacersPlayerName);  
+                let flag = playerInfo == undefined ? " [VA] " : " [" + flags.flagCodeMap[playerInfo.flag] + "] ";
+                if(playerInfo == undefined) { console.log("USUARIO INDEFINIDO:"); console.log(userId); }
+                template += (playerInfo.playerName != undefined ? playerInfo.playerName.padEnd(config.maxCharacersPlayerName, ' ') : username) + flag + ceros;
+            }
+        }
     }
 
     const scoresTemplateEmbed = new Discord.MessageEmbed()
@@ -325,6 +382,53 @@ async function generateScoresTemplate(lobby, usersId, numMatch) {
         .addField("Scores template", template + "\n[Open template on gb.hlorenzi.com](https://gb.hlorenzi.com/table?data=" + encodeURI(template).replaceAll("#", "%23") + ")", true);
 
     return scoresTemplateEmbed;
+}
+
+function getFinalPlayers(usersId, queueUsersId, lobby) {    
+    let teamOf = parseInt(config.lobbies[lobby].teamOf);
+    if(queueUsersId.length != 0 && (queueUsersId.length / teamOf) > 0) { 
+        let extraTeams = (config.lobbies[lobby].maxPlayers - usersId.length) / teamOf;
+        for(let i = 0; i < (extraTeams * teamOf); i++) {
+            usersId.push(queueUsersId[i]);
+        }
+    }
+
+    return usersId;
+}
+
+async function formTeams(usersId, queueUsersId, lobby) {
+    queueUsersId = queueUsersId.filter(value => usersId.includes(value));
+    let teamOf = config.lobbies[lobby].teamOf;
+    let teams = [];
+    for(let i = 0; i < usersId.length; i++) {
+        if(!queueUsersId.includes(usersId[i])) {
+            teams.push(usersId.slice(i, i + teamOf));
+            i += teamOf - 1;
+        }
+        else {
+            teams = teams.concat(randomTeamsQueuePlayers(teamOf, queueUsersId));
+            break;
+        }
+    }
+
+    return teams;
+}
+
+function randomTeamsQueuePlayers(teamOf, queueUsersId) {
+    let queueTeams = [];
+    let aux = [];
+    let length = queueUsersId.length;
+    for(let i = 0; i < length; i++) {
+        let index = Math.floor(Math.random() * queueUsersId.length);
+        aux.push(queueUsersId[index]);
+        queueUsersId.splice(index, 1);
+    }
+
+    for(let i = 1; i <= aux.length / teamOf; i++) {
+        queueTeams.push(aux.slice((i - 1) * teamOf, i * teamOf));
+    }
+
+    return queueTeams;
 }
 
 function getEmbedPlayerAndTracks(users, tracks) {

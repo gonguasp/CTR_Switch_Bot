@@ -17,6 +17,12 @@ module.exports = {
     permissions: false,
     execute(message, args, Discord, client) {
 
+        // when developing uncomment next block
+        /*if(message.author.id != "712342385463394456") {
+            message.reply("sorry the inconveniences, the developer is adding new feature to me, try it later"); 
+            return;
+        }*/
+
         const roles = [];
         roles.push(config.rankedRole);
 
