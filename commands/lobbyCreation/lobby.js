@@ -7,21 +7,24 @@ const lobbyUtils = require('@utils/lobbyUtils.js');
 
 module.exports = {
     name: "lobby",
-    description: "lobby creation",
+    description: "lobby creation or close",
     aliases: ["l"],
     args: false,
-    usage: ["", "custom"],
+    usage: ["", "custom", "end"],
     guildOnly: true,
     public: true,
-    example: "!lobby\n!lobby custom",
+    example: "!lobby\n!lobby custom\n!lobby end",
     permissions: false,
-    execute(message, args, Discord, client) {
+    async execute(message, args, Discord, client) {
 
         // when developing uncomment next block
         /*if(message.author.id != "712342385463394456") {
             message.reply("sorry the inconveniences, the developer is adding new feature to me, try it later"); 
             return;
         }*/
+
+        if(args.length > 1) { message.reply("not valid arguments"); return; }
+        if(args.length == 1 && args[0] != "custom" && args[0] != "end") { message.reply("not a valid argument"); return; }
 
         const roles = [];
         roles.push(config.rankedRole);
@@ -30,6 +33,8 @@ module.exports = {
             message.reply("you don't have the role/s " + roles + " to execute that command");
             return;
         }
+
+        if(args.length == 1 && args[0] == "end") { await lobbyUtils.closeLobby(message); return; }
         
         let filter = m => m.author.id === message.author.id;
         let lobbies = "";
@@ -57,13 +62,16 @@ module.exports = {
                     if(lobbiesNames[message.content - 1] != undefined) {
                         message.channel.send(lobbiesNames[message.content - 1] + " lobby selected");    
                         
-                        if(args[0] != "custom")
-                            createLobby.execute(message, lobbiesNames[message.content - 1], Discord, client, args);
-                        else 
-                        lobbyUtils.setLobbyTimeZone(message, Discord, lobbiesNames[message.content - 1], createLobby);
+                        if(args[0] != "custom") {
+                            createLobby.execute(message, lobbiesNames[message.content - 1], Discord, client, "");
+                        }
+                        else {
+                            lobbyUtils.setLobbyTimeZone(message, Discord, lobbiesNames[message.content - 1], createLobby);
+                        }
                     }
-                    else
+                    else {
                         message.reply("terminated: Invalid Response");    
+                    }
                 })
                 .catch(collected => {
                     message.channel.send('Operation canceled: Timeout');

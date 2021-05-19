@@ -8,6 +8,9 @@ const matchSchema = new mongoose.Schema({
   players: { type: [PlayerSchema], require: true },
   averageRank: { type: Number, require: true },
   teams: { type: [[PlayerSchema]], require: false },
+  author: { type: String, require: false },
+  writenMessages: { type: [String], require: false },
+  closed: { type: Boolean, require: false },
   scores: { type: String, require: false },
   created: { type: Date, default: Date.now }  
 });
