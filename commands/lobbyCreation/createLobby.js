@@ -29,8 +29,7 @@ module.exports = {
         let usersAndFlags = new Map();
         let playersRank = [];
         let queuePlayers = new Map();
-
-        let lobbyNumber = await lobbyUtils.saveLobby(lobby, [], 0, 0);        
+        
         let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
         if(!channel)
             channel = message.channel;
@@ -43,6 +42,8 @@ module.exports = {
         let rankedMessage = await channel.send("<@&" + role.id + ">");
         let messageEmbed = await channel.send(embed);
         await messageEmbed.react(config.emojis.confirm);
+
+        let lobbyNumber = await lobbyUtils.saveLobby(lobby, [], 0, 0, message.author, [messageEmbed, rankedMessage]);        
         
         const filter = (reaction, user) => {
             return reaction.emoji.name === config.emojis.confirm && !user.bot;
@@ -65,7 +66,7 @@ module.exports = {
                 }
 
                 if(!config.lobbies[lobby].team) {
-                    let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask);
+                    let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, lobbyNumber);
                     playersRank = aux.playersRank;
                     usersAndFlags = aux.usersAndFlags;
                     tracks = aux.tracks;
@@ -81,14 +82,14 @@ module.exports = {
                         for(let memberId of teamMembers) {
                             let u = {};
                             u.id = memberId;
-                            let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, u, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask);
+                            let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, u, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, lobbyNumber);
                             playersRank = aux.playersRank;
                             usersAndFlags = aux.usersAndFlags;
                             tracks = aux.tracks;
                             futureTask = aux.futureTask;
                         }
 
-                        let aux = await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask);
+                        let aux = await lobbyUtils.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber);
                         tracks = aux.tracks;
                         futureTask = aux.futureTask;
                         await TeamSchema.findOneAndUpdate({ 
@@ -98,7 +99,7 @@ module.exports = {
                     }
                     else {
                         queuePlayers.set(user.id, await lobbyUtils.getPlayerAndFlag(user));
-                        let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, queuePlayers);
+                        let aux = await lobbyUtils.addPlayerToLobby(maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayers);
                         tracks = aux.tracks;
                         futureTask = aux.futureTask;
                     }
@@ -116,7 +117,7 @@ module.exports = {
                     playerRank = rankUtils.getRankInfo(lobby, playerRank);
                     playersRank = playersRank.filter(item => item.id !== playerRank.id);  
                     
-                    futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
+                    futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, lobbyNumber);
                 }
             }
             else if(usersAndFlags.has(user.id)) { // belongs to a team
@@ -136,7 +137,7 @@ module.exports = {
                     playersRank = playersRank.filter(item => item.id !== playerRank.id);  
                 }
 
-                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed);
+                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, lobbyNumber);
 
                 await TeamSchema.findOneAndUpdate({ 
                     discordPartnersIds: message.author.id,
@@ -145,23 +146,27 @@ module.exports = {
             }
             else { // the player is signed in the queue players
                 queuePlayers.delete(user.id);
-                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, Array.from(queuePlayers.values()));
+                futureTask = await lobbyUtils.editDeletePlayerLobbyEmbed(minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, lobbyNumber, Array.from(queuePlayers.values()));
             }
         });
 
         collector.on('end', async (reaction, user) => {
-            let messagesArray = [messageEmbed, rankedMessage];
-            if((Array.from(usersAndFlags.keys()).length + Array.from(queuePlayers.keys()).length ) >= minPlayersPerLobby) {
-                lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), Array.from(queuePlayers.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
-            }
-            else {
-                messagesArray.forEach(element => { element.delete(); });
-            }
+            if(!(await MatchSchema.find({ matchNumber: lobbyNumber }).exec()).closed) {
+                let messagesArray = [messageEmbed, rankedMessage];
+                if((Array.from(usersAndFlags.keys()).length + Array.from(queuePlayers.keys()).length ) >= minPlayersPerLobby) {
+                    lobbyUtils.finishLobby(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, Array.from(usersAndFlags.keys()), Array.from(queuePlayers.keys()), tracks, lobby, await rankUtils.calculateAverageRank(playersRank), lobbyNumber);
+                }
+                else {
+                    messagesArray.forEach(element => { element.delete(); });
+                }
 
-            if(config.lobbies[lobby].team) {
-                teamUtils.deleteTeams(lobbyNumber);
+                if(config.lobbies[lobby].team) {
+                    teamUtils.deleteTeams(lobbyNumber);
+                }
             }
         });
+
+        message.reply("lobby created successfully!");
     }
 
 }

@@ -131,6 +131,11 @@ exports.finishLobby = async function(messagesArray, deleteMessageInHours, future
             users = users.concat(queueUsers);
         }
 
+        console.log(tracks);
+        if(tracks == undefined || tracks == "") {
+            tracks = this.genTracks(config.lobbies[lobby].numRaces);
+        }
+
         lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));        
         let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, numMatch));
         lobbyChannel.send(scoresTemplate);
@@ -158,7 +163,7 @@ exports.isRegistered = async function (user) {
     return player != null && player.playerName != undefined;
 }
 
-exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
+exports.saveLobby = async function (lobby, users, averageRank, numMatch, author, writenMessages) {
 
     if(numMatch == 0) {
         await MatchSchema.where({}).countDocuments(function(err, count) {
@@ -172,8 +177,13 @@ exports.saveLobby = async function (lobby, users, averageRank, numMatch) {
         matchNumber: numMatch,
         lobbyModality: lobby,
         players: await getPlayersInfo(users),
-        averageRank: Number.isNaN(averageRank) ? 1200 : averageRank
+        averageRank: Number.isNaN(averageRank) ? 1200 : averageRank,
     };
+    if(author != undefined) {
+        update.author = author.id;
+        update.writenMessages = writenMessages;
+        update.closed = false;
+    }
     let filter = { matchNumber: numMatch };
     let options = {
         new: true,
@@ -190,7 +200,7 @@ exports.getPlayerAndFlag = async function (user) {
     return player.flag + " <@" + user.id + ">";
 }
 
-exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, queuePlayers) {
+exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayers) {
     if(await this.isRegistered(user)) {
         if(queuePlayers == undefined) {
             let playerRank = await rankUtils.findPlayerRank(user);
@@ -198,12 +208,12 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
             usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
         }
         if(!config.lobbies[lobby].team) {
-            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask);
+            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber);
             tracks = result.tracks;
             futureTask = result.futureTask;
         }
         else {
-            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayers);
+            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayers);
             tracks = result.tracks;
             futureTask = result.futureTask;
         }
@@ -225,7 +235,7 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
     return { playersRank, usersAndFlags, tracks, futureTask };
 }
 
-exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, queuePlayersMap) {
+exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayersMap) {
     let queuePlayers;
     if(queuePlayersMap != undefined) {
         queuePlayers = Array.from(queuePlayersMap.values());
@@ -268,8 +278,10 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
             }
 
             futureTask = this.scheduleLobbyNotification(lobby, futureTask, players, this.parseTime(time), message, notifications);
-            futureTask.first.start();
-            futureTask.second.start();
+            if(!(await MatchSchema.find({ matchNumber: lobbyNumber }).exec()).closed) {
+                futureTask.first.start();
+                futureTask.second.start();
+            }
         }
         messageEmbed.edit(newEmbed);
     }
@@ -281,7 +293,7 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
     return { tracks, futureTask };
 }
 
-exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, queuePlayers) {
+exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, lobbyNumber, queuePlayers) {
     let playerRankString = "";
     let usersString = "";
     let averageRank = 0;
@@ -314,8 +326,10 @@ exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, 
             newEmbed.addField("Tracks", tracks, true);
         }        
         futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
-        futureTask.first.start();
-        futureTask.second.start();
+        if(!(await MatchSchema.find({ matchNumber: lobbyNumber }).exec()).closed) {
+            futureTask.first.start();
+            futureTask.second.start();
+        }
     }
     else if(futureTask != undefined) {
         futureTask.first.destroy();
@@ -324,6 +338,29 @@ exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, 
 
     messageEmbed.edit(newEmbed);
     return futureTask;
+}
+
+exports.closeLobby = async function(message) {
+    let filter = { author: message.author.id, closed: false };
+    let matchesNotFinished = await MatchSchema.find(filter).exec();
+    for(let matchNotFinished of matchesNotFinished) {
+        let writenMessages = matchNotFinished.writenMessages;
+        let channel = utils.getChannelByName(message, config.rankedLobbiesChannel);
+
+        for(let messageId of writenMessages) {
+            try {
+                let msg = await channel.messages.fetch(messageId);
+                if(msg != undefined) { msg.delete(); }
+            } catch(err) {
+                console.log(err);
+            }
+        }
+
+        await MatchSchema.findOneAndUpdate({ 
+            matchNumber: matchNotFinished.matchNumber,
+        }, { closed: true }).exec();
+    }
+
 }
 
 ////////////////////////////////////////////////// PRIVATE FUNCTIONS
