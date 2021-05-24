@@ -122,23 +122,26 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.finishLobby = async function(messagesArray, deleteMessageInHours, futureTask, lobbyChannel, users, queueUsers, tracks, lobby, averageRank, numMatch) {
-    deleteMessageInFuture(messagesArray, deleteMessageInHours);
-    if(futureTask != undefined) {
-        futureTask.first.destroy();
-        futureTask.second.destroy();
+exports.finishLobby = async function(messagesArray, lobbyDto, lobby) {
+    let averageRank = await rankUtils.calculateAverageRank(lobbyDto.playersRank);
+    let uers = Array.from(lobbyDto.usersAndFlags.keys());
+    let queueUsers = Array.from(lobbyDto.queuePlayers.keys());
+    deleteMessageInFuture(messagesArray, lobbyDto.deleteMessageInHours);
+    if(lobbyDto.futureTask != undefined) {
+        lobbyDto.futureTask.first.destroy();
+        lobbyDto.futureTask.second.destroy();
         if(queueUsers != undefined) {
             users = users.concat(queueUsers);
         }
 
-        console.log(tracks);
-        if(tracks == undefined || tracks == "") {
-            tracks = this.genTracks(config.lobbies[lobby].numRaces);
+        console.log(lobbyDto.tracks);
+        if(lobbyDto.tracks == undefined || lobbyDto.tracks == "") {
+            lobbyDto.tracks = this.genTracks(config.lobbies[lobby].numRaces);
         }
 
-        lobbyChannel.send(getEmbedPlayerAndTracks(users, tracks));        
-        let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, numMatch));
-        lobbyChannel.send(scoresTemplate);
+        lobbyDto.lobbyChannel.send(getEmbedPlayerAndTracks(users, lobbyDto.tracks));        
+        let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, lobbyDto.numMatch));
+        lobbyDto.lobbyChannel.send(scoresTemplate);
     }
 }
 
@@ -200,23 +203,9 @@ exports.getPlayerAndFlag = async function (user) {
     return player.flag + " <@" + user.id + ">";
 }
 
-exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobby, user, lobby, playersRank, usersAndFlags, messageEmbed, reaction, lobbyChannel, color, title, time, notifications, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayers) {
-    if(await this.isRegistered(user)) {
-        if(queuePlayers == undefined) {
-            let playerRank = await rankUtils.findPlayerRank(user);
-            playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
-            usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
-        }
-        if(!config.lobbies[lobby].team) {
-            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber);
-            tracks = result.tracks;
-            futureTask = result.futureTask;
-        }
-        else {
-            let result = await this.editAddPlayerLobbyEmbed(maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayers);
-            tracks = result.tracks;
-            futureTask = result.futureTask;
-        }
+exports.addPlayerToLobby = async function (lobbyDto, user, lobby, reaction, message) {
+    if(await this.isRegistered(user)) {        
+        lobbyDto = await this.editAddPlayerLobbyEmbed(lobbyDto, reaction, lobby, user, message);
     }
     else {
         await reaction.users.remove(user.id);
@@ -229,26 +218,26 @@ exports.addPlayerToLobby = async function (maxPlayersPerLobby, minPlayersPerLobb
             answer = "before to sign up the lobby the user <@" + user.id + "> must set the player name, use !set_player_name or !spn.\n\n" + 
                      "Example:\n!set_player_name <your player name>\n!spn <your player name>";
         }
-        lobbyChannel.send("<@" + user.id + ">, " + answer);
+        lobbyDto.lobbyChannel.send("<@" + user.id + ">, " + answer);
     }
 
-    return { playersRank, usersAndFlags, tracks, futureTask };
+    return lobbyDto;
 }
 
-exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayersPerLobby, messageEmbed, reaction, lobbyChannel, color, title, time, lobby, notifications, user, playersRank, usersAndFlags, message, tracks, numTracks, futureTask, lobbyNumber, queuePlayersMap) {
+exports.editAddPlayerLobbyEmbed = async function (lobbyDto, reaction, lobby, user, message) {
     let queuePlayers;
-    if(queuePlayersMap != undefined) {
-        queuePlayers = Array.from(queuePlayersMap.values());
+    if(lobbyDto.queuePlayers != undefined && lobbyDto.queuePlayers.size != 0) {
+        queuePlayers = Array.from(lobbyDto.queuePlayers.values());
     }
     let playerRankString = "";
     let usersString = "";
-    usersAndFlags.forEach(element => usersString += element); 
-    playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
-    let averageRank = await rankUtils.calculateAverageRank(playersRank);
+    lobbyDto.usersAndFlags.forEach(element => usersString += element); 
+    lobbyDto.playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+    let averageRank = await rankUtils.calculateAverageRank(lobbyDto.playersRank);
 
     const newEmbed = new Discord.MessageEmbed()
-        .setColor(color)
-        .setTitle(title);
+        .setColor(lobbyDto.color)
+        .setTitle(lobbyDto.title);
     
     if(usersString != "") {
         newEmbed.addField("\nPlayers", usersString, true)
@@ -262,50 +251,51 @@ exports.editAddPlayerLobbyEmbed = async function (maxPlayersPerLobby, minPlayers
         }
         newEmbed.addField("Queue players", queuePlayersString);
     }
-    newEmbed.addField("Time", time, true)
+    newEmbed.addField("Time", lobbyDto.time, true)
 
-    if(usersAndFlags.size <= maxPlayersPerLobby) {
-        lobbyCompleted = usersAndFlags.size == maxPlayersPerLobby;
+    if(lobbyDto.usersAndFlags.size <= lobbyDto.maxPlayersPerLobby) {
+        lobbyCompleted = lobbyDto.usersAndFlags.size == lobbyDto.maxPlayersPerLobby;
         if(queuePlayers == undefined) { queuePlayers = []; }
-        if((usersAndFlags.size + queuePlayers != undefined ? queuePlayers.length : 0) >= minPlayersPerLobby) {
-            if(tracks == "") {
-                tracks = this.genTracks(numTracks);
+        if((lobbyDto.usersAndFlags.size + queuePlayers != undefined ? queuePlayers.length : 0) >= lobbyDto.minPlayersPerLobby) {
+            if(lobbyDto.tracks == "") {
+                lobbyDto.tracks = this.genTracks(lobbyDto.numTracks);
             }
-            newEmbed.addField("Tracks", tracks, true);
-            let players = Array.from(usersAndFlags.keys());
+            newEmbed.addField("Tracks", lobbyDto.tracks, true);
+            let players = Array.from(lobbyDto.usersAndFlags.keys());
             if(queuePlayers != undefined && queuePlayers.length) {
-                players = players.concat(Array.from(queuePlayersMap.keys()));
+                players = players.concat(Array.from(lobbyDto.queuePlayersMap.keys()));
             }
 
-            futureTask = this.scheduleLobbyNotification(lobby, futureTask, players, this.parseTime(time), message, notifications);
-            if(!(await MatchSchema.find({ matchNumber: lobbyNumber }).exec()).closed) {
-                futureTask.first.start();
-                futureTask.second.start();
+            lobbyDto.futureTask = this.scheduleLobbyNotification(lobby, lobbyDto.futureTask, players, this.parseTime(time), message, lobbyDto.notifications);
+            if(!(await MatchSchema.find({ matchNumber: lobbyDto.lobbyNumber }).exec()).closed) {
+                lobbyDto.futureTask.first.start();
+                lobbyDto.futureTask.second.start();
             }
         }
-        messageEmbed.edit(newEmbed);
+        lobbyDto.messageEmbed.edit(newEmbed);
     }
-    else if(usersAndFlags.size > maxPlayersPerLobby) {
+    else if(lobbyDto.usersAndFlags.size > lobbyDto.maxPlayersPerLobby) {
         await reaction.users.remove(user.id);
-        lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
+        lobbyDto.lobbyChannel.send("<@" + user.id + ">, the lobby is full by the moment. Stay focus just in case there is a vacancy in the near future");
     }
 
-    return { tracks, futureTask };
+    return lobbyDto;
 }
 
-exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, usersAndFlags, playersRank, color, title, time, tracks, futureTask, message, notifications, messageEmbed, lobbyNumber, queuePlayers) {
+exports.editDeletePlayerLobbyEmbed = async function (lobbyDto, lobby, message) {
     let playerRankString = "";
     let usersString = "";
     let averageRank = 0;
-    if(usersAndFlags.size > 0) {
-        usersAndFlags.forEach(element => usersString += element); 
-        playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
-        averageRank = await rankUtils.calculateAverageRank(playersRank);
+    let queuePlayers = Array.from(lobbyDto.queuePlayers.values());
+    if(lobbyDto.usersAndFlags.size > 0) {
+        lobbyDto.usersAndFlags.forEach(element => usersString += element); 
+        lobbyDto.playersRank.forEach(element => playerRankString += element.playerName + " [" + element.rank + "]\n");
+        averageRank = await rankUtils.calculateAverageRank(lobbyDto.playersRank);
     }
     
     const newEmbed = new Discord.MessageEmbed()
-        .setColor(color)
-        .setTitle(title);
+        .setColor(lobbyDto.color)
+        .setTitle(lobbyDto.title);
 
     if(usersString != "") {
         newEmbed.addField("\nPlayers", usersString, true)
@@ -319,25 +309,25 @@ exports.editDeletePlayerLobbyEmbed = async function (minPlayersPerLobby, lobby, 
         }
         newEmbed.addField("Queue players", queuePlayersString);
     }
-    newEmbed.addField("Time", time, true);
+    newEmbed.addField("Time", lobbyDto.time, true);
 
-    if(usersAndFlags.size >= minPlayersPerLobby) {
-        if(tracks != "") {
-            newEmbed.addField("Tracks", tracks, true);
+    if(lobbyDto.usersAndFlags.size >= lobbyDto.minPlayersPerLobby) {
+        if(lobbyDto.tracks != "") {
+            newEmbed.addField("Tracks", lobbyDto.tracks, true);
         }        
-        futureTask = this.scheduleLobbyNotification(lobby, futureTask, Array.from(usersAndFlags.keys()), this.parseTime(time), message, notifications);
-        if(!(await MatchSchema.find({ matchNumber: lobbyNumber }).exec()).closed) {
-            futureTask.first.start();
-            futureTask.second.start();
+        lobbyDto.futureTask = this.scheduleLobbyNotification(lobby, lobbyDto.futureTask, Array.from(lobbyDto.usersAndFlags.keys()), this.parseTime(lobbyDto.time), message, lobbyDto.notifications);
+        if(!(await MatchSchema.find({ matchNumber: lobbyDto.lobbyNumber }).exec()).closed) {
+            lobbyDto.futureTask.first.start();
+            lobbyDto.futureTask.second.start();
         }
     }
-    else if(futureTask != undefined) {
-        futureTask.first.destroy();
-        futureTask.second.destroy();
+    else if(lobbyDto.futureTask != undefined) {
+        lobbyDto.futureTask.first.destroy();
+        lobbyDto.futureTask.second.destroy();
     }
 
-    messageEmbed.edit(newEmbed);
-    return futureTask;
+    lobbyDto.messageEmbed.edit(newEmbed);
+    return lobbyDto.futureTask;
 }
 
 exports.closeLobby = async function(message) {

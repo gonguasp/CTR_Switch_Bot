@@ -6,18 +6,27 @@ module.exports = {
     description: "this is just a joke",
     guildOnly: true,
     public: true,
+    aliases: ["chiste"],
     example: "!joke",
     permissions: false,
     execute(message, args, Discord, client) {
 
-        if(utils.areAllUsed(config.jokes))
+        let jokes;
+        if(message.content == "!joke") {
+            jokes = config.jokes;
+        }
+        else {
+            jokes = config.chistes;
+        }
+
+        if(utils.areAllUsed(jokes))
             utils.restartUsability();
 
-        let random = Math.round(Math.random() * (config.jokes.length - 1));
-        while(config.jokes[random].used)
-            random = Math.round(Math.random() * (config.jokes.length - 1));
+        let random = Math.round(Math.random() * (jokes.length - 1));
+        while(jokes[random].used)
+            random = Math.round(Math.random() * (jokes.length - 1));
 
-        config.jokes[random].used = true;
-        message.channel.send(config.jokes[random].text);
+        jokes[random].used = true;
+        message.channel.send(jokes[random].text);
     }
 }
