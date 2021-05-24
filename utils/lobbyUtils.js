@@ -122,7 +122,7 @@ exports.genTracks = function (numRaces) {
     return round;
 }
 
-exports.finishLobby = async function(messagesArray, lobbyDto, lobby, averageRank, numMatch) {
+exports.finishLobby = async function(messagesArray, lobbyDto, lobby) {
     let averageRank = await rankUtils.calculateAverageRank(lobbyDto.playersRank);
     let uers = Array.from(lobbyDto.usersAndFlags.keys());
     let queueUsers = Array.from(lobbyDto.queuePlayers.keys());

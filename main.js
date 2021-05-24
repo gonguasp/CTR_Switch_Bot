@@ -5,6 +5,7 @@ const utils = require('@utils/utils.js');
 const rankUtils = require('@utils/rankUtils.js');
 const Discord = require("discord.js");
 const mongoDB = require("./db/connect.js");
+const ParametersSchema = require('@models/ParametersSchema.js');
 const client = new Discord.Client({ retryLimit: 10 });
 
 
@@ -35,4 +36,6 @@ client.once("ready", () => {
     console.log("CTR_SwitchBot is online! Active since " + new Date().toISOString());
 });
 
-client.login(config.token);
+ParametersSchema.findOne({ description: 'loginToken' }).exec().then(loginToken => {
+    client.login(loginToken.name);
+});

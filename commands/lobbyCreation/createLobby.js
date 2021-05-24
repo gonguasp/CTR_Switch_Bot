@@ -44,7 +44,7 @@ module.exports = {
         lobbyDto.messageEmbed = await channel.send(embed);
         await lobbyDto.messageEmbed.react(config.emojis.confirm);
         lobbyDto.lobbyNumber = await lobbyUtils.saveLobby(lobby, [], 0, 0, message.author, [lobbyDto.messageEmbed, rankedMessage]);        
-        
+
         const filter = (reaction, user) => {
             return reaction.emoji.name === config.emojis.confirm && !user.bot;
         };
@@ -66,6 +66,9 @@ module.exports = {
                 }
 
                 if(!config.lobbies[lobby].team) {
+                    let playerRank = await rankUtils.findPlayerRank(user);
+                    lobbyDto.playersRank.push(rankUtils.getRankInfo(lobby, playerRank));
+                    lobbyDto.usersAndFlags.set(user.id, (playerRank.player == undefined ? config.defaultFlag : playerRank.player.flag) + " <@" + user.id + ">\n");
                     lobbyDto = await lobbyUtils.addPlayerToLobby(lobbyDto, user, lobby, reaction, message);
                 }
                 else {
