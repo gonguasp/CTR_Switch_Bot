@@ -124,7 +124,7 @@ exports.genTracks = function (numRaces) {
 
 exports.finishLobby = async function(messagesArray, lobbyDto, lobby) {
     let averageRank = await rankUtils.calculateAverageRank(lobbyDto.playersRank);
-    let uers = Array.from(lobbyDto.usersAndFlags.keys());
+    let users = Array.from(lobbyDto.usersAndFlags.keys());
     let queueUsers = Array.from(lobbyDto.queuePlayers.keys());
     deleteMessageInFuture(messagesArray, lobbyDto.deleteMessageInHours);
     if(lobbyDto.futureTask != undefined) {
@@ -134,7 +134,6 @@ exports.finishLobby = async function(messagesArray, lobbyDto, lobby) {
             users = users.concat(queueUsers);
         }
 
-        console.log(lobbyDto.tracks);
         if(lobbyDto.tracks == undefined || lobbyDto.tracks == "") {
             lobbyDto.tracks = this.genTracks(config.lobbies[lobby].numRaces);
         }
@@ -256,7 +255,7 @@ exports.editAddPlayerLobbyEmbed = async function (lobbyDto, reaction, lobby, use
     if(lobbyDto.usersAndFlags.size <= lobbyDto.maxPlayersPerLobby) {
         lobbyCompleted = lobbyDto.usersAndFlags.size == lobbyDto.maxPlayersPerLobby;
         if(queuePlayers == undefined) { queuePlayers = []; }
-        if((lobbyDto.usersAndFlags.size + queuePlayers != undefined ? queuePlayers.length : 0) >= lobbyDto.minPlayersPerLobby) {
+        if((lobbyDto.usersAndFlags.size + (queuePlayers != undefined ? queuePlayers.length : 0)) >= lobbyDto.minPlayersPerLobby) {
             if(lobbyDto.tracks == "") {
                 lobbyDto.tracks = this.genTracks(lobbyDto.numTracks);
             }
@@ -266,7 +265,7 @@ exports.editAddPlayerLobbyEmbed = async function (lobbyDto, reaction, lobby, use
                 players = players.concat(Array.from(lobbyDto.queuePlayersMap.keys()));
             }
 
-            lobbyDto.futureTask = this.scheduleLobbyNotification(lobby, lobbyDto.futureTask, players, this.parseTime(time), message, lobbyDto.notifications);
+            lobbyDto.futureTask = this.scheduleLobbyNotification(lobby, lobbyDto.futureTask, players, this.parseTime(lobbyDto.time), message, lobbyDto.notifications);
             if(!(await MatchSchema.find({ matchNumber: lobbyDto.lobbyNumber }).exec()).closed) {
                 lobbyDto.futureTask.first.start();
                 lobbyDto.futureTask.second.start();

@@ -5,6 +5,7 @@ const lobbyUtils = require('@utils/lobbyUtils.js');
 const rankUtils = require('@utils/rankUtils.js');
 const teamUtils = require('@utils/teamUtils.js');
 const TeamSchema = require('@models/TeamSchema.js');
+const MatchSchema = require('@models/MatchSchema.js');
 
 module.exports = {
     name: "createlobby",
