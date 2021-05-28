@@ -17,3 +17,17 @@ To make this bot run you will need:
   - Config the mongoDB, create a new data base and change the url connection to yours .
   - Insert in the mongoDB ParametersSchema collection the documment with fields name = <your login token bot> and description = "loginToken"
   - Install nodejs
+
+  
+  
+# How to use
+  
+
+To create a new lobby it is possible to do with the command !l or !lobby
+  
+  ![image](https://user-images.githubusercontent.com/51484718/120018323-4b809280-bfe7-11eb-88ab-b88dc43c57ab.png)
+
+
+When the bot tells you the lobby is already created you can search it in the channel rankeds-lobbies and if you react to the green check box the bot will automatically add you to the message.
+  
+  ![image](https://user-images.githubusercontent.com/51484718/120018438-72d75f80-bfe7-11eb-952a-cd322876b2ce.png)
