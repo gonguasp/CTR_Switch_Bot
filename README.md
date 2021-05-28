@@ -42,6 +42,14 @@ Also duos lobbies, 3vs3 and 4vs4 are aviable
   
   ![image](https://user-images.githubusercontent.com/51484718/120018991-2dfff880-bfe8-11eb-9958-621dd580ad08.png)
   
+When the ranked starts, the bot will also generate a template for the scores and a link to open it with the data players leaded.
+  
+  ![image](https://user-images.githubusercontent.com/51484718/120020223-b501a080-bfe9-11eb-83d8-4ee46e997fdd.png)
+
+When the ranked match is over, to register the scores just copy and paste the template scores with the final points in the channel results-register and the bot will process it and save it.
+  
+  ![image](https://user-images.githubusercontent.com/51484718/120020376-e5e1d580-bfe9-11eb-827c-406d0ccd105a.png)
+
   
 With the command !help the bot will send you the manual of all the commands and a few examples of how to use all of them. There are 20 commands in total. 
   
