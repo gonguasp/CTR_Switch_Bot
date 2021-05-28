@@ -12,3 +12,8 @@ Also it is possible to create differents kind of libbies like ffa, duos, 3vs3, 4
 A part of helping with the organization, it has some interesting commands or utilities:
   - The bot will give the welcome to the new members.
   - The bot has a list of jokes in different languages
+
+To make this bot run you will need:
+  - Config the mongoDB, create a new data base and change the url connection to yours .
+  - Insert in the mongoDB ParametersSchema collection the documment with fields name = <your login token bot> and description = "loginToken"
+  - Install nodejs
