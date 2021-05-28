@@ -30,4 +30,5 @@ To create a new lobby it is possible to do with the command !l or !lobby
 
 When the bot tells you the lobby is already created you can search it in the channel rankeds-lobbies and if you react to the green check box the bot will automatically add you to the message.
   
-  ![image](https://user-images.githubusercontent.com/51484718/120018438-72d75f80-bfe7-11eb-952a-cd322876b2ce.png)
+  ![image](https://user-images.githubusercontent.com/51484718/120018536-9a2e2c80-bfe7-11eb-8a40-6e808119e792.png)
+
