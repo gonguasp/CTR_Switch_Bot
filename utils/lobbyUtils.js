@@ -139,7 +139,7 @@ exports.finishLobby = async function(messagesArray, lobbyDto, lobby) {
         }
 
         lobbyDto.lobbyChannel.send(getEmbedPlayerAndTracks(users, lobbyDto.tracks));        
-        let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, lobbyDto.numMatch));
+        let scoresTemplate = await generateScoresTemplate(lobby, users, queueUsers, await this.saveLobby(lobby, users, averageRank, lobbyDto.lobbyNumber));
         lobbyDto.lobbyChannel.send(scoresTemplate);
     }
 }
